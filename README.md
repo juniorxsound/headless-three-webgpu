@@ -1,6 +1,6 @@
 # headless-three-webgpu
 
-`headless-three-webgpu` is an open-source renderer runtime for running Three.js on top of Dawn/WebGPU inside Node.js. It is extracted from the renderer technology behind render.gl, but it is intentionally scoped as a developer-facing engine and toolkit rather than a hosted product SDK.
+`headless-three-webgpu` is an open-source renderer runtime for running Three.js on top of Dawn/WebGPU inside Node.js. It is extracted from the renderer technology behind render.gl, and its published packages use the `@rendergl/*` scope while staying intentionally scoped as a developer-facing engine and toolkit rather than a hosted product SDK.
 
 The boundary is simple:
 
@@ -20,9 +20,9 @@ Headless browser rendering can be heavy, slow to bootstrap, or awkward to integr
 
 ## Packages
 
-- `headless-three-webgpu`: core headless renderer runtime and API
-- `headless-three-webgpu-helpers`: GLTF loading, inspection, and convenience rendering helpers
-- `headless-three-webgpu-cli`: the `htw` CLI
+- `@rendergl/three-headless`: core headless renderer runtime and API
+- `@rendergl/three-headless-helpers`: GLTF loading, inspection, and convenience rendering helpers
+- `@rendergl/three-headless-cli`: the `rgl` CLI
 
 ## Quickstart
 
@@ -38,22 +38,19 @@ pnpm test
 Render a GLB with the CLI:
 
 ```bash
-pnpm --filter headless-three-webgpu-cli exec htw render ./model.glb --width 1280 --height 720 --output ./frame.png
+pnpm --filter @rendergl/three-headless-cli exec rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
 ```
 
 Inspect a model without touching the GPU:
 
 ```bash
-pnpm --filter headless-three-webgpu-cli exec htw inspect ./model.glb
+pnpm --filter @rendergl/three-headless-cli exec rgl inspect ./model.glb
 ```
 
 ## Core API
 
 ```ts
-import {
-  createHeadlessWebGPURenderer,
-  createRendererRuntime,
-} from "headless-three-webgpu";
+import { createHeadlessWebGPURenderer, createRendererRuntime } from "@rendergl/three-headless";
 import {
   AmbientLight,
   BoxGeometry,
@@ -78,12 +75,7 @@ const sun = new DirectionalLight(0xffffff, 1.4);
 sun.position.set(4, 6, 8);
 scene.add(sun);
 
-scene.add(
-  new Mesh(
-    new BoxGeometry(1, 1, 1),
-    new MeshStandardMaterial({ color: "#4f8cff" }),
-  ),
-);
+scene.add(new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial({ color: "#4f8cff" })));
 
 const camera = new PerspectiveCamera(45, 1, 0.1, 100);
 camera.position.set(2, 2, 3);
@@ -101,7 +93,7 @@ await runtime.dispose();
 GLTF-specific conveniences live in `packages/helpers` so the core renderer stays generic:
 
 ```ts
-import { renderGltf } from "headless-three-webgpu-helpers";
+import { renderGltf } from "@rendergl/three-headless-helpers";
 
 const result = await renderGltf({
   path: "./model.glb",
@@ -117,9 +109,9 @@ const result = await renderGltf({
 The CLI intentionally wraps the packages above instead of re-implementing renderer logic.
 
 ```bash
-htw render ./model.glb --output ./frame.png
-htw inspect ./model.glb
-htw bench --iterations 20 --format png
+rgl render ./model.glb --output ./frame.png
+rgl inspect ./model.glb
+rgl bench --iterations 20 --format png
 ```
 
 ## CPU-only and diagnostics

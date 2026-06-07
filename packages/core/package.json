@@ -1,12 +1,14 @@
 {
-  "name": "headless-three-webgpu",
+  "name": "@rendergl/three-headless",
   "version": "0.1.0",
   "description": "Headless Dawn/WebGPU + Three.js renderer runtime for Node.js",
   "license": "Apache-2.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

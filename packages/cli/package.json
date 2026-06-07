@@ -1,15 +1,17 @@
 {
-  "name": "headless-three-webgpu-cli",
+  "name": "@rendergl/three-headless-cli",
   "version": "0.1.0",
-  "description": "CLI for headless-three-webgpu",
+  "description": "CLI for @rendergl/three-headless",
   "license": "Apache-2.0",
-  "type": "module",
   "bin": {
-    "htw": "./dist/index.js"
+    "rgl": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,8 +25,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "commander": "^13.1.0",
-    "headless-three-webgpu": "workspace:*",
-    "headless-three-webgpu-helpers": "workspace:*"
+    "@rendergl/three-headless": "workspace:*",
+    "@rendergl/three-headless-helpers": "workspace:*",
+    "commander": "^13.1.0"
   }
 }

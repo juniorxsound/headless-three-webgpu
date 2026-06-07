@@ -41,15 +41,15 @@ importers:
 
   packages/cli:
     dependencies:
+      '@rendergl/three-headless':
+        specifier: workspace:*
+        version: link:../core
+      '@rendergl/three-headless-helpers':
+        specifier: workspace:*
+        version: link:../helpers
       commander:
         specifier: ^13.1.0
         version: 13.1.0
-      headless-three-webgpu:
-        specifier: workspace:*
-        version: link:../core
-      headless-three-webgpu-helpers:
-        specifier: workspace:*
-        version: link:../helpers
 
   packages/core:
     dependencies:
@@ -65,12 +65,12 @@ importers:
 
   packages/helpers:
     dependencies:
+      '@rendergl/three-headless':
+        specifier: workspace:*
+        version: link:../core
       draco3d:
         specifier: ^1.5.7
         version: 1.5.7
-      headless-three-webgpu:
-        specifier: workspace:*
-        version: link:../core
       sharp:
         specifier: ^0.34.5
         version: 0.34.5

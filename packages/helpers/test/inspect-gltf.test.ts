@@ -9,7 +9,7 @@ import { inlineGltfExternalResources } from "../src/gltf-document.js";
 
 describe("inspectGltfAsset", () => {
   it("reports counts from a JSON glTF file", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "htw-gltf-"));
+    const directory = await mkdtemp(join(tmpdir(), "rgl-gltf-"));
     const filePath = join(directory, "scene.gltf");
     await writeFile(
       filePath,
@@ -43,7 +43,7 @@ describe("inspectGltfAsset", () => {
   });
 
   it("inlines external buffers into data URIs", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "htw-inline-"));
+    const directory = await mkdtemp(join(tmpdir(), "rgl-inline-"));
     const gltfPath = join(directory, "scene.gltf");
     const binPath = join(directory, "mesh.bin");
     await writeFile(binPath, Buffer.from([1, 2, 3, 4]));

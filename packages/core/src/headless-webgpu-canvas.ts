@@ -29,7 +29,7 @@ export function createHeadlessWebGpuCanvas(width: number, height: number): Headl
     configure(config: GPUCanvasConfiguration) {
       swap?.destroy();
       swap = config.device.createTexture({
-        label: "headless-three-webgpu-swap",
+        label: "rendergl-three-headless-swap",
         size: [canvas.width, canvas.height],
         format: config.format,
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,

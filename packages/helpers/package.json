@@ -1,12 +1,14 @@
 {
-  "name": "headless-three-webgpu-helpers",
+  "name": "@rendergl/three-headless-helpers",
   "version": "0.1.0",
-  "description": "GLTF and asset helpers for headless-three-webgpu",
+  "description": "GLTF and asset helpers for @rendergl/three-headless",
   "license": "Apache-2.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -20,8 +22,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@rendergl/three-headless": "workspace:*",
     "draco3d": "^1.5.7",
-    "headless-three-webgpu": "workspace:*",
     "sharp": "^0.34.5",
     "three": "^0.184.0"
   }

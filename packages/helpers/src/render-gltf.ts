@@ -12,12 +12,17 @@ import {
   type Object3D,
   type Texture,
 } from "three";
-import { createHeadlessWebGPURenderer } from "headless-three-webgpu";
+import { createHeadlessWebGPURenderer } from "@rendergl/three-headless";
 
 import { inspectGltfAsset } from "./inspect-gltf.js";
 import { loadGltfFromFile } from "./gltf-loader.js";
 
-import type { GltfLightingPreset, RenderGltfCameraOptions, RenderGltfOptions, RenderGltfResult } from "./types.js";
+import type {
+  GltfLightingPreset,
+  RenderGltfCameraOptions,
+  RenderGltfOptions,
+  RenderGltfResult,
+} from "./types.js";
 
 function addLighting(scene: Scene, lighting: GltfLightingPreset): void {
   if (lighting === "none") {
@@ -74,7 +79,11 @@ function resolveCamera(
   const distance = radius / Math.tan((fov * Math.PI) / 360) + radius * 1.5;
 
   const camera = new PerspectiveCamera(fov, width / height, 0.01, radius * 64);
-  const position = options?.position ?? [center.x + distance * 0.75, center.y + radius * 0.6, center.z + distance];
+  const position = options?.position ?? [
+    center.x + distance * 0.75,
+    center.y + radius * 0.6,
+    center.z + distance,
+  ];
   const target = options?.target ?? [center.x, center.y, center.z];
 
   camera.position.set(position[0], position[1], position[2]);

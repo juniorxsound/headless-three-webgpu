@@ -1,7 +1,7 @@
 import { basename, dirname, extname, join } from "node:path";
 
-import type { OutputFormat, RendererBenchmarkOptions } from "headless-three-webgpu";
-import type { RenderGltfCameraOptions, RenderGltfOptions } from "headless-three-webgpu-helpers";
+import type { OutputFormat, RendererBenchmarkOptions } from "@rendergl/three-headless";
+import type { RenderGltfCameraOptions, RenderGltfOptions } from "@rendergl/three-headless-helpers";
 
 export function parseVector3(value: string | undefined): [number, number, number] | undefined {
   if (!value) {
@@ -20,10 +20,7 @@ export function parseVector3(value: string | undefined): [number, number, number
   return [parts[0]!, parts[1]!, parts[2]!];
 }
 
-export function resolveFormat(
-  format: string | undefined,
-  outputPath?: string,
-): OutputFormat {
+export function resolveFormat(format: string | undefined, outputPath?: string): OutputFormat {
   if (format === "png" || format === "webp") {
     return format;
   }
