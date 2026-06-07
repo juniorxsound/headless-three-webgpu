@@ -1,5 +1,5 @@
 export {
-  HTW_DAWN_FLAGS_ENV,
+  RGL_DAWN_FLAGS_ENV,
   createRendererRuntime,
   formatDawnFlagsForEnv,
   installWebGpuNodePolyfills,
@@ -11,8 +11,6 @@ export { encodeImageToBuffer } from "./image-encoding.js";
 export { alignWidthForWebGpuRgba8, cropRgbaCenter, deflateRgba8UnormRows } from "./readback.js";
 export { createHeadlessWebGPURenderer, createRendererWithRuntime } from "./renderer.js";
 export { runRendererBenchmark } from "./benchmark.js";
-export { RendererRuntimePool } from "./runtime-pool.js";
-export type { RuntimeFactory, RuntimeLease } from "./runtime-pool.js";
 export type {
   CreateHeadlessWebGPURendererOptions,
   EncodeImageOptions,

@@ -6,7 +6,7 @@ import type {
   RendererRuntimeOptions,
 } from "./types.js";
 
-export const HTW_DAWN_FLAGS_ENV = "HTW_DAWN_FLAGS";
+export const RGL_DAWN_FLAGS_ENV = "RGL_DAWN_FLAGS";
 
 const NO_NAVIGATOR = Symbol("no navigator");
 
@@ -113,7 +113,7 @@ export function resolveWebGpuDawnFlags(
     return options.dawnFlags;
   }
 
-  return parseDawnFlags(env[HTW_DAWN_FLAGS_ENV]);
+  return parseDawnFlags(env[RGL_DAWN_FLAGS_ENV]);
 }
 
 export function installWebGpuNodePolyfills(options: RendererRuntimeOptions = {}): GPU {

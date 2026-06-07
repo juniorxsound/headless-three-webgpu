@@ -13,42 +13,90 @@ import {
   type Texture,
 } from "three";
 import { createHeadlessWebGPURenderer } from "@rendergl/three-headless";
+import type { z } from "zod";
 
 import { inspectGltfAsset } from "./inspect-gltf.js";
 import { loadGltfFromFile } from "./gltf-loader.js";
+import { renderGltfCameraOptionsSchema, renderGltfOptionsSchema } from "./render-gltf-schema.js";
 
-import type {
-  GltfLightingPreset,
-  RenderGltfCameraOptions,
-  RenderGltfOptions,
-  RenderGltfResult,
-} from "./types.js";
+import type { RenderGltfLightingOptions, RenderGltfOptions, RenderGltfResult } from "./types.js";
 
-function addLighting(scene: Scene, lighting: GltfLightingPreset): void {
-  if (lighting === "none") {
+type ParsedLightingOptions = z.infer<typeof renderGltfOptionsSchema>["lighting"];
+type ParsedCameraOptions = z.infer<typeof renderGltfCameraOptionsSchema> | undefined;
+
+function resolveLightingOptions(lighting: ParsedLightingOptions): RenderGltfLightingOptions {
+  if (!lighting) {
+    return { preset: "studio" };
+  }
+
+  if (typeof lighting === "string") {
+    return { preset: lighting };
+  }
+
+  const resolved: RenderGltfLightingOptions = {};
+  if (lighting.preset) {
+    resolved.preset = lighting.preset;
+  }
+  if (lighting.ambientIntensity !== undefined) {
+    resolved.ambientIntensity = lighting.ambientIntensity;
+  }
+  if (lighting.keyIntensity !== undefined) {
+    resolved.keyIntensity = lighting.keyIntensity;
+  }
+  if (lighting.fillIntensity !== undefined) {
+    resolved.fillIntensity = lighting.fillIntensity;
+  }
+  if (lighting.rimIntensity !== undefined) {
+    resolved.rimIntensity = lighting.rimIntensity;
+  }
+  if (lighting.keyPosition) {
+    resolved.keyPosition = lighting.keyPosition;
+  }
+  if (lighting.fillPosition) {
+    resolved.fillPosition = lighting.fillPosition;
+  }
+  if (lighting.rimPosition) {
+    resolved.rimPosition = lighting.rimPosition;
+  }
+
+  return {
+    preset: "studio",
+    ...resolved,
+  };
+}
+
+function addLighting(scene: Scene, lightingInput: ParsedLightingOptions): void {
+  const lighting = resolveLightingOptions(lightingInput);
+  const preset = lighting.preset ?? "studio";
+
+  if (preset === "none") {
     return;
   }
 
-  if (lighting === "flat") {
-    scene.add(new AmbientLight(0xffffff, 1.1));
-    const key = new DirectionalLight(0xffffff, 0.75);
-    key.position.set(3, 5, 4);
+  if (preset === "flat") {
+    scene.add(new AmbientLight(0xffffff, lighting.ambientIntensity ?? 1.1));
+    const key = new DirectionalLight(0xffffff, lighting.keyIntensity ?? 0.75);
+    const keyPosition = lighting.keyPosition ?? [3, 5, 4];
+    key.position.set(keyPosition[0], keyPosition[1], keyPosition[2]);
     scene.add(key);
     return;
   }
 
-  scene.add(new AmbientLight(0xffffff, 0.45));
+  scene.add(new AmbientLight(0xffffff, lighting.ambientIntensity ?? 0.45));
 
-  const key = new DirectionalLight(0xffffff, 1.35);
-  key.position.set(4, 6, 8);
+  const key = new DirectionalLight(0xffffff, lighting.keyIntensity ?? 1.35);
+  const keyPosition = lighting.keyPosition ?? [4, 6, 8];
+  key.position.set(keyPosition[0], keyPosition[1], keyPosition[2]);
   scene.add(key);
 
-  const fill = new DirectionalLight(0x8aa6ff, 0.55);
-  fill.position.set(-5, 3, 2);
+  const fill = new DirectionalLight(0x8aa6ff, lighting.fillIntensity ?? 0.55);
+  const fillPosition = lighting.fillPosition ?? [-5, 3, 2];
+  fill.position.set(fillPosition[0], fillPosition[1], fillPosition[2]);
   scene.add(fill);
 
-  const rim = new DirectionalLight(0xffffff, 0.35);
-  rim.position.set(-2, 5, -6);
+  const rim = new DirectionalLight(0xffffff, lighting.rimIntensity ?? 0.35);
+  const rimPosition = lighting.rimPosition ?? [-2, 5, -6];
+  rim.position.set(rimPosition[0], rimPosition[1], rimPosition[2]);
   scene.add(rim);
 }
 
@@ -56,7 +104,7 @@ function resolveCamera(
   root: Object3D,
   width: number,
   height: number,
-  options: RenderGltfCameraOptions | undefined,
+  options: ParsedCameraOptions,
 ): Camera {
   if (options?.useEmbeddedCamera !== false) {
     let embeddedCamera: Camera | null = null;
@@ -114,7 +162,8 @@ function disposeSceneGraph(root: Object3D): void {
   });
 }
 
-export async function renderGltf(options: RenderGltfOptions): Promise<RenderGltfResult> {
+export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfResult> {
+  const options = renderGltfOptionsSchema.parse(input);
   const renderer = await createHeadlessWebGPURenderer({
     width: options.width,
     height: options.height,

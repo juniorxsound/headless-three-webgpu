@@ -23,7 +23,7 @@ describe("runtime helpers", () => {
           dawnFlags: ["backend=opengl"],
         },
         {
-          HTW_DAWN_FLAGS: "backend=vulkan",
+          RGL_DAWN_FLAGS: "backend=vulkan",
         } as NodeJS.ProcessEnv,
       ),
     ).toEqual(["backend=opengl"]);

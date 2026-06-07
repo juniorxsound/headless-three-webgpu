@@ -12,6 +12,7 @@ import { ensureNodeImagePolyfill } from "./node-image-polyfill.js";
 import { createNodeKtx2Loader } from "./node-ktx2-loader.js";
 
 type ParsedGltf = Awaited<ReturnType<GLTFLoader["parseAsync"]>>;
+const IGNORED_GLTF_EXTENSIONS = ["KHR_materials_variants"] as const;
 
 function attachNodeDracoDecoder(loader: GLTFLoader): void {
   (
@@ -27,6 +28,14 @@ function attachNodeKtx2Loader(loader: GLTFLoader, ktx2Loader: KTX2Loader): void 
       setKTX2Loader(ktx2Loader: KTX2Loader): GLTFLoader;
     }
   ).setKTX2Loader(ktx2Loader);
+}
+
+function attachIgnoredExtensions(loader: GLTFLoader): void {
+  for (const extensionName of IGNORED_GLTF_EXTENSIONS) {
+    loader.register(() => ({
+      name: extensionName,
+    }));
+  }
 }
 
 function toExactArrayBuffer(source: ArrayBuffer | ArrayBufferView<ArrayBufferLike>): ArrayBuffer {
@@ -55,12 +64,15 @@ export async function loadGltfFromFile(
   const extension = extname(path).toLowerCase();
   const loader = new GLTFLoader();
   attachNodeDracoDecoder(loader);
+  attachIgnoredExtensions(loader);
 
   const ktx2Loader = await createNodeKtx2Loader(renderer);
   attachNodeKtx2Loader(loader, ktx2Loader);
 
   const source =
-    extension === ".glb" ? new Uint8Array(await readFile(path)) : await inlineGltfExternalResources(path);
+    extension === ".glb"
+      ? new Uint8Array(await readFile(path))
+      : await inlineGltfExternalResources(path);
   const previousCreateImageBitmap = globalThis.createImageBitmap;
 
   try {

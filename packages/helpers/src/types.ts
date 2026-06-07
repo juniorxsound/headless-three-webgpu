@@ -6,6 +6,17 @@ import type {
 
 export type GltfLightingPreset = "studio" | "flat" | "none";
 
+export interface RenderGltfLightingOptions {
+  preset?: GltfLightingPreset;
+  ambientIntensity?: number;
+  keyIntensity?: number;
+  fillIntensity?: number;
+  rimIntensity?: number;
+  keyPosition?: [number, number, number];
+  fillPosition?: [number, number, number];
+  rimPosition?: [number, number, number];
+}
+
 export interface RenderGltfCameraOptions {
   position?: [number, number, number];
   target?: [number, number, number];
@@ -19,7 +30,7 @@ export interface RenderGltfOptions extends RendererRuntimeOptions {
   height: number;
   format?: OutputFormat;
   background?: string;
-  lighting?: GltfLightingPreset;
+  lighting?: GltfLightingPreset | RenderGltfLightingOptions;
   camera?: RenderGltfCameraOptions;
 }
 
