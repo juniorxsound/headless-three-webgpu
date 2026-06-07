@@ -1,0 +1,24 @@
+colors: true
+
+pre-commit:
+  parallel: false
+  jobs:
+    - name: format
+      glob: "*.{ts,js,json,md,yml,yaml}"
+      run: pnpm exec oxfmt --no-error-on-unmatched-pattern {staged_files}
+      stage_fixed: true
+      skip:
+        - merge
+        - rebase
+    - name: oxlint
+      glob: "*.{ts,js}"
+      run: pnpm exec oxlint {staged_files}
+      skip:
+        - merge
+        - rebase
+
+pre-push:
+  parallel: false
+  jobs:
+    - name: knip
+      run: pnpm knip

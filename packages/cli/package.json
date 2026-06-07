@@ -1,0 +1,30 @@
+{
+  "name": "headless-three-webgpu-cli",
+  "version": "0.1.0",
+  "description": "CLI for headless-three-webgpu",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "htw": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "oxlint -c ../../.oxlintrc.json src test",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "headless-three-webgpu": "workspace:*",
+    "headless-three-webgpu-helpers": "workspace:*"
+  }
+}

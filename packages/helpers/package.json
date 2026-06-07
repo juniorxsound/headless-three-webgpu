@@ -1,0 +1,28 @@
+{
+  "name": "headless-three-webgpu-helpers",
+  "version": "0.1.0",
+  "description": "GLTF and asset helpers for headless-three-webgpu",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "lint": "oxlint -c ../../.oxlintrc.json src test",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "draco3d": "^1.5.7",
+    "headless-three-webgpu": "workspace:*",
+    "sharp": "^0.34.5",
+    "three": "^0.184.0"
+  }
+}

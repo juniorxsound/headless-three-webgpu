@@ -1,0 +1,7 @@
+headless-three-webgpu
+Copyright 2026 render.gl contributors
+
+This project is the open-source extraction of the headless Dawn/WebGPU and
+Three.js renderer runtime that powers render.gl. The hosted render.gl product
+includes additional platform services and application code that are not part of
+this repository.

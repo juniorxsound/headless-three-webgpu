@@ -1,0 +1,29 @@
+{
+  "name": "headless-three-webgpu",
+  "private": true,
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "format": "oxfmt .",
+    "knip": "knip",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "prepare": "lefthook install || true"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.1",
+    "@types/three": "^0.184.0",
+    "@webgpu/types": "^0.1.63",
+    "knip": "5",
+    "lefthook": "^2.1.5",
+    "oxfmt": "^0.42.0",
+    "oxlint": "^1.57.0",
+    "turbo": "^2.4.4",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  }
+}
