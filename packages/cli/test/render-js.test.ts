@@ -14,7 +14,9 @@ describe("loadSceneModule", () => {
     await writeFile(
       modulePath,
       `
-export default async function createScene({ THREE, width, height }) {
+import * as THREE from "three/webgpu";
+
+export default async function createScene({ width, height }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
   return { scene, camera };
@@ -22,11 +24,7 @@ export default async function createScene({ THREE, width, height }) {
 `,
     );
 
-    const result = await loadSceneModule(modulePath, {
-      THREE: await import("three/webgpu"),
-      width: 800,
-      height: 600,
-    });
+    const result = await loadSceneModule(modulePath, { width: 800, height: 600 });
 
     expect(result.scene.isScene).toBe(true);
     expect(result.camera.isCamera).toBe(true);
@@ -45,12 +43,8 @@ export default function createScene() {
 `,
     );
 
-    await expect(
-      loadSceneModule(modulePath, {
-        THREE: await import("three/webgpu"),
-        width: 800,
-        height: 600,
-      }),
-    ).rejects.toThrow("must resolve to an object with { scene, camera }");
+    await expect(loadSceneModule(modulePath, { width: 800, height: 600 })).rejects.toThrow(
+      "must resolve to an object with { scene, camera }",
+    );
   });
 });

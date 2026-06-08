@@ -138,7 +138,9 @@ rgl bench --iterations 20 --format png
 For `--js`, export a default function or named `createScene` function that returns `{ scene, camera }`:
 
 ```ts
-export default async function createScene({ THREE, width, height }) {
+import * as THREE from "three/webgpu";
+
+export default async function createScene({ width, height }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
 

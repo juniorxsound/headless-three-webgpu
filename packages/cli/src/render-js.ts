@@ -7,10 +7,8 @@ import {
   type OutputFormat,
 } from "@rendergl/headless-three-webgpu";
 import type { Camera, Scene } from "three";
-import * as THREE from "three/webgpu";
 
 interface JsSceneModuleContext {
-  THREE: typeof THREE;
   width: number;
   height: number;
 }
@@ -85,7 +83,6 @@ export async function renderSceneModule(
 ): Promise<JsSceneRenderResult> {
   const resolvedModulePath = resolve(options.modulePath);
   const { scene, camera } = await loadSceneModule(resolvedModulePath, {
-    THREE,
     width: options.width,
     height: options.height,
   });
