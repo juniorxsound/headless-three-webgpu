@@ -1,22 +1,14 @@
 # headless-three-webgpu
 
-`headless-three-webgpu` is an open-source renderer runtime for running Three.js on top of Dawn/WebGPU inside Node.js. It is extracted from the renderer technology behind render.gl, and its published packages use the `@rendergl/*` scope while staying intentionally scoped as a developer-facing engine and toolkit rather than a hosted product SDK.
+"<Project Image Goes Here>"
 
-The boundary is simple:
+## What
 
-- This repo includes the headless WebGPU runtime, a renderer-first API, GLTF helpers, a CLI, examples, and docs.
-- This repo does not include hosted platform concerns such as auth, billing, tenancy, usage metering, delivery URLs, or dashboard code.
-- render.gl remains the hosted product built on top of this renderer technology.
+Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate and deploy.
 
-## Why this exists
+`headless-three-webgpu` renders Three.js scenes headlessly in Node.js. It levrages Three.js rendering capabilities and WebGPU through Dawn, so you get a real GPU pipeline without a browser, a canvas, or a display server.
 
-Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate into build pipelines. This project focuses on a narrower job:
-
-- bring Dawn/WebGPU to Node
-- present a familiar Three.js-style renderer API
-- support offscreen rendering and pixel readback
-- make GLTF rendering practical with Node-specific texture, DRACO, and KTX2 helpers
-- provide a thin CLI for local automation and benchmarking
+> This is the core rendering layer powering [render.gl](https://www.render.gl). Its published packages use the `@rendergl/*` scope and stay intentionally scoped as a developer-facing engine and toolkit rather than a hosted product SDK. If you want cloud-based rendering with a lot more features on top, check out [render.gl](https://www.render.gl) (please).
 
 ## Packages
 
@@ -24,33 +16,54 @@ Headless browser rendering can be heavy, slow to bootstrap, or awkward to integr
 - `@rendergl/headless-three-webgpu-helpers`: GLTF loading, inspection, and convenience rendering helpers
 - `@rendergl/headless-three-webgpu-cli`: the `rgl` CLI
 
+## Requirements
+
+- Node 24 or newer
+- a machine Dawn can reach a GPU on: Metal on macOS, Vulkan on Linux, native on Windows
+- no manual Dawn setup; the native WebGPU binaries install automatically with the core package
+
+For CPU-only environments (CI, containers without a GPU), run Dawn against SwiftShader. See the runtime notes in the skills under `.agents/skills`.
+
+## Install
+
+Install what you need from npm.
+
+Just the CLI, no code:
+
+```bash
+npm install -D @rendergl/headless-three-webgpu-cli
+```
+
+The core renderer for your own scenes (`three` is a peer dependency):
+
+```bash
+npm install @rendergl/headless-three-webgpu three
+```
+
+The core renderer plus GLTF helpers:
+
+```bash
+npm install @rendergl/headless-three-webgpu @rendergl/headless-three-webgpu-helpers three
+```
+
 ## Quickstart
 
-This repository targets Node 24 and uses `pnpm` only.
+Render a GLB from the command line:
 
 ```bash
-nvm use
-pnpm install
-pnpm build
-pnpm test
+npx rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
 ```
 
-Render a GLB with the CLI:
+Render a custom JavaScript scene module:
 
 ```bash
-pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
-```
-
-Render a custom JavaScript scene module with the CLI:
-
-```bash
-pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render --js ./scene.mjs --width 1280 --height 720 --output ./frame.png
+npx rgl render --js ./scene.mjs --width 1280 --height 720 --output ./frame.png
 ```
 
 Inspect a model without touching the GPU:
 
 ```bash
-pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl inspect ./model.glb
+npx rgl inspect ./model.glb
 ```
 
 ## Core API
@@ -176,4 +189,21 @@ export async function setup({ width, height }) {
 export function update(delta) {
   cube.rotation.y += delta;
 }
+```
+
+## Develop
+
+Working on this repo itself? It is a `pnpm` + `turbo` monorepo targeting Node 24.
+
+```bash
+nvm use
+pnpm install
+pnpm build
+pnpm test
+```
+
+From inside the workspace, run the CLI against the local build:
+
+```bash
+pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render ./model.glb --output ./frame.png
 ```
