@@ -8,3 +8,4 @@ tmp
 **/tmp
 examples/**/output
 examples/**/.cache
+output

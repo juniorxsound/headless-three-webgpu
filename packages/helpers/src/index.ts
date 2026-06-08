@@ -3,7 +3,12 @@ export { loadGltfFromFile } from "./gltf-loader.js";
 export { inspectGltfAsset } from "./inspect-gltf.js";
 export { createNodeDracoDecoder } from "./node-draco-loader.js";
 export { createNodeKtx2Loader, loadNodeKtx2Texture } from "./node-ktx2-loader.js";
-export { normalizeSceneLight, renderGltf } from "./render-gltf.js";
+export {
+  computeGltfFraming,
+  normalizeSceneLight,
+  prepareGltfScene,
+  renderGltf,
+} from "./render-gltf.js";
 export {
   gltfLightingPresetSchema,
   renderGltfCameraOptionsSchema,
@@ -14,8 +19,10 @@ export {
 } from "./render-gltf-schema.js";
 export type {
   GltfAssetSummary,
+  GltfFraming,
   GltfLightingPreset,
   LoadedGltfDocument,
+  PreparedGltfScene,
   RenderGltfAmbientLight,
   RenderGltfCameraOptions,
   RenderGltfDirectionalLight,

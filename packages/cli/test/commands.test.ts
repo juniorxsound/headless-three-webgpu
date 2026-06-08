@@ -4,10 +4,12 @@ import {
   buildBenchOptions,
   buildRenderOptions,
   buildRenderPlan,
+  buildVideoPlan,
   parseLight,
   parseVector3,
   resolveFormat,
   resolveOutputPath,
+  resolveVideoContainer,
 } from "../src/commands.js";
 
 describe("cli helpers", () => {
@@ -156,6 +158,97 @@ describe("cli helpers", () => {
     expect(() =>
       buildRenderPlan(undefined, {
         js: "/tmp/scene.mjs",
+        width: 640,
+        height: 480,
+        envMap: "/tmp/studio.hdr",
+      }),
+    ).toThrow("Environment map options are currently only supported for GLTF/GLB renders");
+  });
+
+  it("infers the video container from the output extension", () => {
+    expect(resolveVideoContainer("/tmp/out.mp4")).toBe("mp4");
+    expect(resolveVideoContainer("/tmp/out.WEBM")).toBe("webm");
+    expect(resolveVideoContainer("/tmp/out.gif")).toBe("gif");
+  });
+
+  it("rejects unsupported video output extensions", () => {
+    expect(() => resolveVideoContainer("/tmp/out.avi")).toThrow("Unsupported video output");
+  });
+
+  it("builds a GLTF turntable video plan and derives the frame count", () => {
+    const plan = buildVideoPlan("/tmp/model.glb", {
+      output: "/tmp/out.mp4",
+      width: 1280,
+      height: 720,
+      camera: "turntable",
+      fps: 30,
+      duration: 4,
+      degrees: 360,
+      lighting: "studio",
+    });
+
+    expect(plan).toMatchObject({
+      kind: "gltf",
+      container: "mp4",
+      outputPath: "/tmp/out.mp4",
+      fps: 30,
+      durationSeconds: 4,
+      frames: 120,
+      width: 1280,
+      height: 720,
+      camera: "turntable",
+      degrees: 360,
+      ease: false,
+    });
+    if (plan.kind === "gltf") {
+      expect(plan.render).toMatchObject({ path: "/tmp/model.glb", width: 1280, height: 720 });
+    }
+  });
+
+  it("builds a JS video plan and carries dawn flags", () => {
+    const plan = buildVideoPlan(undefined, {
+      js: "/tmp/scene.mjs",
+      output: "/tmp/out.webm",
+      width: 640,
+      height: 480,
+      fps: 24,
+      duration: 2,
+      dawnFlag: ["backend=vulkan"],
+    });
+
+    expect(plan).toMatchObject({
+      kind: "js",
+      container: "webm",
+      modulePath: "/tmp/scene.mjs",
+      frames: 48,
+      dawnFlags: ["backend=vulkan"],
+    });
+  });
+
+  it("rejects odd dimensions for yuv420p video containers", () => {
+    expect(() =>
+      buildVideoPlan("/tmp/model.glb", {
+        output: "/tmp/out.mp4",
+        width: 1281,
+        height: 720,
+      }),
+    ).toThrow("requires even --width and --height");
+  });
+
+  it("allows odd dimensions for gif output", () => {
+    const plan = buildVideoPlan("/tmp/model.glb", {
+      output: "/tmp/out.gif",
+      width: 641,
+      height: 361,
+    });
+    expect(plan.container).toBe("gif");
+  });
+
+  it("rejects environment maps for JS video renders", () => {
+    expect(() =>
+      buildVideoPlan(undefined, {
+        js: "/tmp/scene.mjs",
+        output: "/tmp/out.mp4",
         width: 640,
         height: 480,
         envMap: "/tmp/studio.hdr",

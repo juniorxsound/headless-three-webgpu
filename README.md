@@ -161,8 +161,25 @@ rgl render ./model.glb --output ./frame.png
 rgl render --js ./scene.mjs --output ./frame.png
 rgl render ./model.glb --light '{"type":"point","position":[2,3,4],"intensity":0.8,"color":"#ffd39b"}'
 rgl render ./model.glb --env-map ./studio.hdr --env-background --env-intensity 1.2
+rgl video ./model.glb --output ./turntable.mp4 --camera turntable --duration 6 --fps 30
 rgl inspect ./model.glb
 rgl bench --iterations 20 --format png
+```
+
+### Video
+
+`rgl video` renders an animated clip and requires `ffmpeg` on your `PATH` (or set `RGL_FFMPEG_PATH`). The container is inferred from the output extension (`.mp4`, `.mov`, `.webm`, `.gif`), and frames are streamed straight to ffmpeg as raw RGBA so memory stays flat for long clips.
+
+```bash
+rgl video ./model.glb --output ./turntable.mp4 --camera turntable --duration 6 --fps 30
+rgl video ./model.glb --output ./dolly.webm --camera dolly-in --ease
+rgl video ./model.glb --output ./loop.gif --camera turntable --fps 15 --duration 3
+```
+
+GLTF/GLB renders support the `turntable`, `dolly-in`, and `dolly-out` camera presets plus all the lighting and environment flags from `rgl render`. For `--js` scene modules there is no preset: drive the camera and everything else from the module's `update(delta)` hook, which runs once per frame with `delta = 1 / fps`.
+
+```bash
+rgl video --js ./scene.mjs --output ./scene.mp4 --fps 24 --duration 5
 ```
 
 Environment maps currently support local equirectangular `.hdr` and `.ktx2` files for GLTF/GLB renders. Use `--env-background` to show the map behind the model, `--env-intensity` to control IBL strength, and `--env-blur` to soften the visible background.

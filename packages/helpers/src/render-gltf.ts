@@ -43,6 +43,8 @@ import {
 } from "./render-gltf-schema.js";
 
 import type {
+  GltfFraming,
+  PreparedGltfScene,
   RenderGltfLightingOptions,
   RenderGltfOptions,
   RenderGltfResult,
@@ -337,11 +339,35 @@ function disposeEnvironmentResources(resources: LoadedEnvironmentResources | nul
   resources.sourceTexture.dispose();
 }
 
+export function computeGltfFraming(
+  root: Object3D,
+  width: number,
+  height: number,
+  fov = 45,
+): GltfFraming {
+  const bounds = new Box3().setFromObject(root);
+  const center = bounds.getCenter(new Vector3());
+  const size = bounds.getSize(new Vector3());
+  const radius = Math.max(size.x, size.y, size.z) / 2 || 0.5;
+  const distance = radius / Math.tan((fov * Math.PI) / 360) + radius * 1.5;
+
+  return {
+    center: [center.x, center.y, center.z],
+    radius,
+    distance,
+    fov,
+    near: 0.01,
+    far: radius * 64,
+    aspect: width / height,
+  };
+}
+
 function resolveCamera(
   root: Object3D,
   width: number,
   height: number,
   options: ParsedCameraOptions,
+  framing: GltfFraming,
 ): Camera {
   if (options?.useEmbeddedCamera !== false) {
     let embeddedCamera: Camera | null = null;
@@ -356,20 +382,14 @@ function resolveCamera(
     }
   }
 
-  const bounds = new Box3().setFromObject(root);
-  const center = bounds.getCenter(new Vector3());
-  const size = bounds.getSize(new Vector3());
-  const radius = Math.max(size.x, size.y, size.z) / 2 || 0.5;
-  const fov = options?.fov ?? 45;
-  const distance = radius / Math.tan((fov * Math.PI) / 360) + radius * 1.5;
-
-  const camera = new PerspectiveCamera(fov, width / height, 0.01, radius * 64);
+  const { center, radius, distance, fov, near, far, aspect } = framing;
+  const camera = new PerspectiveCamera(fov, aspect, near, far);
   const position = options?.position ?? [
-    center.x + distance * 0.75,
-    center.y + radius * 0.6,
-    center.z + distance,
+    center[0] + distance * 0.75,
+    center[1] + radius * 0.6,
+    center[2] + distance,
   ];
-  const target = options?.target ?? [center.x, center.y, center.z];
+  const target = options?.target ?? center;
 
   camera.position.set(position[0], position[1], position[2]);
   camera.lookAt(target[0], target[1], target[2]);
@@ -399,7 +419,12 @@ function disposeSceneGraph(root: Object3D): void {
   });
 }
 
-export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfResult> {
+/**
+ * Build a renderable GLTF/GLB scene without rendering a frame. The caller is
+ * responsible for invoking `dispose` once finished. Useful for rendering many
+ * frames (e.g. video) from a single load while animating the camera.
+ */
+export async function prepareGltfScene(input: RenderGltfOptions): Promise<PreparedGltfScene> {
   const options = renderGltfOptionsSchema.parse(input);
   const renderer = await createHeadlessWebGPURenderer({
     width: options.width,
@@ -410,6 +435,14 @@ export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfRe
   const inspection = await inspectGltfAsset(options.path);
   let loadedScene: Object3D | null = null;
   let environmentResources: LoadedEnvironmentResources | null = null;
+
+  const dispose = async (): Promise<void> => {
+    disposeEnvironmentResources(environmentResources);
+    if (loadedScene) {
+      disposeSceneGraph(loadedScene);
+    }
+    await renderer.dispose();
+  };
 
   try {
     const gltf = await loadGltfFromFile(options.path, rendererHandle);
@@ -423,20 +456,48 @@ export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfRe
     addLighting(scene, options.lighting ?? "studio");
     environmentResources = await applyEnvironment(scene, rendererHandle, options.environment);
 
-    const camera = resolveCamera(gltf.scene, options.width, options.height, options.camera);
-    await renderer.render(scene, camera);
-    const buffer = await renderer.toBuffer(options.format ?? "png");
+    const framing = computeGltfFraming(
+      gltf.scene,
+      options.width,
+      options.height,
+      options.camera?.fov,
+    );
+    const camera = resolveCamera(
+      gltf.scene,
+      options.width,
+      options.height,
+      options.camera,
+      framing,
+    );
+
+    return {
+      renderer,
+      scene,
+      camera,
+      framing,
+      inspection,
+      dispose,
+    };
+  } catch (error) {
+    await dispose();
+    throw error;
+  }
+}
+
+export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfResult> {
+  const format = input.format ?? "png";
+  const prepared = await prepareGltfScene(input);
+
+  try {
+    await prepared.renderer.render(prepared.scene, prepared.camera);
+    const buffer = await prepared.renderer.toBuffer(format);
 
     return {
       buffer,
-      diagnostics: renderer.getDiagnostics(),
-      inspection,
+      diagnostics: prepared.renderer.getDiagnostics(),
+      inspection: prepared.inspection,
     };
   } finally {
-    disposeEnvironmentResources(environmentResources);
-    if (loadedScene) {
-      disposeSceneGraph(loadedScene);
-    }
-    await renderer.dispose();
+    await prepared.dispose();
   }
 }

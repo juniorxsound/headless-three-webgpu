@@ -1,8 +1,10 @@
 import type {
+  HeadlessWebGPURenderer,
   HeadlessWebGPURendererDiagnostics,
   OutputFormat,
   RendererRuntimeOptions,
 } from "@rendergl/headless-three-webgpu";
+import type { Camera, Scene } from "three";
 
 export type GltfLightingPreset = "studio" | "flat" | "none";
 
@@ -84,6 +86,33 @@ export interface RenderGltfResult {
   buffer: Uint8Array;
   diagnostics: HeadlessWebGPURendererDiagnostics;
   inspection: GltfAssetSummary;
+}
+
+/**
+ * Bounding-box framing derived from a loaded GLTF/GLB scene. Useful for driving
+ * animated cameras (orbits, dollies) without re-deriving the bounds per frame.
+ */
+export interface GltfFraming {
+  center: [number, number, number];
+  radius: number;
+  distance: number;
+  fov: number;
+  near: number;
+  far: number;
+  aspect: number;
+}
+
+/**
+ * A fully built GLTF/GLB scene ready to render one or many frames. The caller
+ * owns the lifecycle and must invoke `dispose` exactly once when finished.
+ */
+export interface PreparedGltfScene {
+  renderer: HeadlessWebGPURenderer;
+  scene: Scene;
+  camera: Camera;
+  framing: GltfFraming;
+  inspection: GltfAssetSummary;
+  dispose: () => Promise<void>;
 }
 
 export interface GltfAssetSummary {

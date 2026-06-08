@@ -46,68 +46,107 @@ const lightArgumentSchema = z.string().transform((value, context) => {
   }
 });
 
-const renderCommandOptionsSchema = z
-  .object({
-    width: z.coerce.number().int().positive(),
-    height: z.coerce.number().int().positive(),
-    js: z.string().min(1).optional(),
-    format: outputFormatSchema.optional(),
-    output: z.string().min(1).optional(),
-    background: z.string().min(1).optional(),
-    lighting: gltfLightingPresetSchema.optional(),
-    ambientIntensity: z.coerce.number().finite().nonnegative().optional(),
-    keyIntensity: z.coerce.number().finite().nonnegative().optional(),
-    fillIntensity: z.coerce.number().finite().nonnegative().optional(),
-    rimIntensity: z.coerce.number().finite().nonnegative().optional(),
-    keyPosition: vector3ArgumentSchema.optional(),
-    fillPosition: vector3ArgumentSchema.optional(),
-    rimPosition: vector3ArgumentSchema.optional(),
-    light: z.array(lightArgumentSchema).default([]),
-    cameraPosition: vector3ArgumentSchema.optional(),
-    cameraTarget: vector3ArgumentSchema.optional(),
-    fov: z.coerce.number().finite().positive().optional(),
-    envMap: z.string().min(1).optional(),
-    envBackground: z.boolean().optional(),
-    envBlur: z.coerce.number().finite().min(0).max(1).optional(),
-    envIntensity: z.coerce.number().finite().positive().max(10).optional(),
-    dawnFlag: z.array(z.string().min(1)).default([]),
-  })
-  .superRefine((value, context) => {
-    if (value.envMap !== undefined) {
-      if (value.envBlur !== undefined && !value.envBackground) {
-        context.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Use --env-background when setting --env-blur",
-          path: ["envBlur"],
-        });
-      }
-      return;
-    }
+interface EnvironmentRefinementInput {
+  envMap?: string | undefined;
+  envBackground?: boolean | undefined;
+  envBlur?: number | undefined;
+  envIntensity?: number | undefined;
+}
 
-    if (value.envBackground) {
+function refineEnvironmentOptions(
+  value: EnvironmentRefinementInput,
+  context: z.RefinementCtx,
+): void {
+  if (value.envMap !== undefined) {
+    if (value.envBlur !== undefined && !value.envBackground) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Use --env-map when setting --env-background",
-        path: ["envBackground"],
-      });
-    }
-
-    if (value.envBlur !== undefined) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Use --env-map when setting --env-blur",
+        message: "Use --env-background when setting --env-blur",
         path: ["envBlur"],
       });
     }
+    return;
+  }
 
-    if (value.envIntensity !== undefined) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Use --env-map when setting --env-intensity",
-        path: ["envIntensity"],
-      });
-    }
-  });
+  if (value.envBackground) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Use --env-map when setting --env-background",
+      path: ["envBackground"],
+    });
+  }
+
+  if (value.envBlur !== undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Use --env-map when setting --env-blur",
+      path: ["envBlur"],
+    });
+  }
+
+  if (value.envIntensity !== undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Use --env-map when setting --env-intensity",
+      path: ["envIntensity"],
+    });
+  }
+}
+
+const sharedRenderFields = {
+  width: z.coerce.number().int().positive(),
+  height: z.coerce.number().int().positive(),
+  background: z.string().min(1).optional(),
+  lighting: gltfLightingPresetSchema.optional(),
+  ambientIntensity: z.coerce.number().finite().nonnegative().optional(),
+  keyIntensity: z.coerce.number().finite().nonnegative().optional(),
+  fillIntensity: z.coerce.number().finite().nonnegative().optional(),
+  rimIntensity: z.coerce.number().finite().nonnegative().optional(),
+  keyPosition: vector3ArgumentSchema.optional(),
+  fillPosition: vector3ArgumentSchema.optional(),
+  rimPosition: vector3ArgumentSchema.optional(),
+  light: z.array(lightArgumentSchema).default([]),
+  cameraPosition: vector3ArgumentSchema.optional(),
+  cameraTarget: vector3ArgumentSchema.optional(),
+  fov: z.coerce.number().finite().positive().optional(),
+  envMap: z.string().min(1).optional(),
+  envBackground: z.boolean().optional(),
+  envBlur: z.coerce.number().finite().min(0).max(1).optional(),
+  envIntensity: z.coerce.number().finite().positive().max(10).optional(),
+  dawnFlag: z.array(z.string().min(1)).default([]),
+} as const;
+
+const sharedRenderSchema = z.object(sharedRenderFields);
+type SharedRenderOptions = z.infer<typeof sharedRenderSchema>;
+
+const renderCommandOptionsSchema = z
+  .object({
+    ...sharedRenderFields,
+    js: z.string().min(1).optional(),
+    format: outputFormatSchema.optional(),
+    output: z.string().min(1).optional(),
+  })
+  .superRefine(refineEnvironmentOptions);
+
+const videoCameraPresetSchema = z.enum(["turntable", "dolly-in", "dolly-out"]);
+
+const videoContainerSchema = z.enum(["mp4", "mov", "webm", "gif"]);
+
+const videoCommandOptionsSchema = z
+  .object({
+    ...sharedRenderFields,
+    js: z.string().min(1).optional(),
+    output: z.string().min(1),
+    camera: videoCameraPresetSchema.default("turntable"),
+    fps: z.coerce.number().int().positive().max(240).default(30),
+    duration: z.coerce.number().finite().positive().max(600).default(6),
+    degrees: z.coerce.number().finite().default(360),
+    ease: z.boolean().optional(),
+    crf: z.coerce.number().int().min(0).max(63).optional(),
+    codec: z.string().min(1).optional(),
+    loop: z.boolean().optional(),
+  })
+  .superRefine(refineEnvironmentOptions);
 
 const benchCommandOptionsSchema = z.object({
   width: z.coerce.number().int().positive(),
@@ -211,9 +250,7 @@ function resolveRenderSource(
   throw new Error("Provide either a GLTF/GLB <file> argument or --js <path>");
 }
 
-function buildCameraOptions(
-  options: z.infer<typeof renderCommandOptionsSchema>,
-): RenderGltfCameraOptions | undefined {
+function buildCameraOptions(options: SharedRenderOptions): RenderGltfCameraOptions | undefined {
   const camera: Partial<RenderGltfCameraOptions> = {};
   assignDefined(camera, "position", options.cameraPosition);
   assignDefined(camera, "target", options.cameraTarget);
@@ -221,9 +258,7 @@ function buildCameraOptions(
   return finalizeOptionalObject<RenderGltfCameraOptions>(camera);
 }
 
-function buildLightingOptions(
-  options: z.infer<typeof renderCommandOptionsSchema>,
-): RenderGltfLightingOptions | undefined {
+function buildLightingOptions(options: SharedRenderOptions): RenderGltfLightingOptions | undefined {
   const lighting: Partial<RenderGltfLightingOptions> = {};
   assignDefined(lighting, "preset", options.lighting);
   assignDefined(lighting, "ambientIntensity", options.ambientIntensity);
@@ -240,7 +275,7 @@ function buildLightingOptions(
 }
 
 function buildEnvironmentOptions(
-  options: z.infer<typeof renderCommandOptionsSchema>,
+  options: SharedRenderOptions,
 ): RenderGltfEnvironmentOptions | undefined {
   if (!options.envMap) {
     return undefined;
@@ -257,9 +292,9 @@ function buildEnvironmentOptions(
 
 function buildRenderRequest(
   sourcePath: string,
-  options: z.infer<typeof renderCommandOptionsSchema>,
+  options: SharedRenderOptions,
+  format: OutputFormat,
 ): RenderGltfOptions {
-  const format = resolveFormat(options.format, options.output);
   const lighting = buildLightingOptions(options);
   const environment = buildEnvironmentOptions(options);
   const camera = buildCameraOptions(options);
@@ -280,14 +315,20 @@ function buildRenderRequest(
   return render as RenderGltfOptions;
 }
 
-export function buildRenderOptions(sourcePath: string, options: unknown): RenderCommandResult {
-  const parsed = renderCommandOptionsSchema.parse(options);
+function gltfResultFromParsed(
+  sourcePath: string,
+  parsed: z.infer<typeof renderCommandOptionsSchema>,
+): RenderCommandResult {
   const format = resolveFormat(parsed.format, parsed.output);
 
   return {
-    render: buildRenderRequest(sourcePath, parsed),
+    render: buildRenderRequest(sourcePath, parsed, format),
     outputPath: resolveOutputPath(sourcePath, parsed.output, format),
   };
+}
+
+export function buildRenderOptions(sourcePath: string, options: unknown): RenderCommandResult {
+  return gltfResultFromParsed(sourcePath, renderCommandOptionsSchema.parse(options));
 }
 
 export function buildRenderPlan(file: string | undefined, options: unknown): RenderExecutionPlan {
@@ -313,7 +354,112 @@ export function buildRenderPlan(file: string | undefined, options: unknown): Ren
 
   return {
     kind: "gltf",
-    ...buildRenderOptions(source.sourcePath, parsed),
+    ...gltfResultFromParsed(source.sourcePath, parsed),
+  };
+}
+
+export type VideoCameraPreset = z.infer<typeof videoCameraPresetSchema>;
+export type VideoContainer = z.infer<typeof videoContainerSchema>;
+
+interface VideoEncodeBase {
+  container: VideoContainer;
+  outputPath: string;
+  fps: number;
+  durationSeconds: number;
+  frames: number;
+  width: number;
+  height: number;
+  crf?: number;
+  codec?: string;
+  loop?: boolean;
+}
+
+interface GltfVideoPlan extends VideoEncodeBase {
+  kind: "gltf";
+  render: RenderGltfOptions;
+  camera: VideoCameraPreset;
+  degrees: number;
+  ease: boolean;
+}
+
+interface JsVideoPlan extends VideoEncodeBase {
+  kind: "js";
+  modulePath: string;
+  dawnFlags?: string[];
+}
+
+export type VideoExecutionPlan = GltfVideoPlan | JsVideoPlan;
+
+const videoContainerByExtension: Record<string, VideoContainer> = {
+  ".mp4": "mp4",
+  ".mov": "mov",
+  ".webm": "webm",
+  ".gif": "gif",
+};
+
+export function resolveVideoContainer(outputPath: string): VideoContainer {
+  const extension = extname(outputPath).toLowerCase();
+  const container = videoContainerByExtension[extension];
+  if (!container) {
+    throw new Error(
+      `Unsupported video output "${outputPath}". Use a .mp4, .mov, .webm, or .gif extension`,
+    );
+  }
+  return container;
+}
+
+function assertEncodableDimensions(width: number, height: number, container: VideoContainer): void {
+  if (container === "gif") {
+    return;
+  }
+
+  if (width % 2 !== 0 || height % 2 !== 0) {
+    throw new Error(
+      `${container} output uses yuv420p and requires even --width and --height (got ${width}x${height})`,
+    );
+  }
+}
+
+export function buildVideoPlan(file: string | undefined, options: unknown): VideoExecutionPlan {
+  const parsed = videoCommandOptionsSchema.parse(options);
+  const container = resolveVideoContainer(parsed.output);
+  assertEncodableDimensions(parsed.width, parsed.height, container);
+  const frames = Math.max(1, Math.round(parsed.duration * parsed.fps));
+  const source = resolveRenderSource(file, parsed.js);
+
+  const base: VideoEncodeBase = {
+    container,
+    outputPath: parsed.output,
+    fps: parsed.fps,
+    durationSeconds: parsed.duration,
+    frames,
+    width: parsed.width,
+    height: parsed.height,
+    ...(parsed.crf !== undefined ? { crf: parsed.crf } : {}),
+    ...(parsed.codec !== undefined ? { codec: parsed.codec } : {}),
+    ...(parsed.loop !== undefined ? { loop: parsed.loop } : {}),
+  };
+
+  if (source.kind === "js") {
+    if (parsed.envMap !== undefined) {
+      throw new Error("Environment map options are currently only supported for GLTF/GLB renders");
+    }
+
+    return {
+      kind: "js",
+      modulePath: source.modulePath,
+      ...base,
+      ...(parsed.dawnFlag.length > 0 ? { dawnFlags: parsed.dawnFlag } : {}),
+    };
+  }
+
+  return {
+    kind: "gltf",
+    render: buildRenderRequest(source.sourcePath, parsed, "png"),
+    camera: parsed.camera,
+    degrees: parsed.degrees,
+    ease: parsed.ease ?? false,
+    ...base,
   };
 }
 
