@@ -83,6 +83,7 @@ function normalizeSceneLight(
 const renderCommandOptionsSchema = z.object({
   width: z.coerce.number().int().positive(),
   height: z.coerce.number().int().positive(),
+  js: z.string().min(1).optional(),
   format: outputFormatSchema.optional(),
   output: z.string().min(1).optional(),
   background: z.string().min(1).optional(),
@@ -113,6 +114,22 @@ interface RenderCommandResult {
   outputPath: string;
   render: RenderGltfOptions;
 }
+
+interface GltfRenderCommandResult extends RenderCommandResult {
+  kind: "gltf";
+}
+
+interface JsRenderCommandResult {
+  dawnFlags?: string[];
+  format: OutputFormat;
+  height: number;
+  kind: "js";
+  modulePath: string;
+  outputPath: string;
+  width: number;
+}
+
+export type RenderExecutionPlan = GltfRenderCommandResult | JsRenderCommandResult;
 
 function assignDefined<T extends object, K extends keyof T>(
   target: Partial<T>,
@@ -160,6 +177,31 @@ export function resolveOutputPath(
 
   const name = basename(sourcePath, extname(sourcePath));
   return join(dirname(sourcePath), `${name}.${format}`);
+}
+
+function resolveRenderSource(
+  file: string | undefined,
+  jsPath: string | undefined,
+): { kind: "gltf"; sourcePath: string } | { kind: "js"; modulePath: string } {
+  if (file && jsPath) {
+    throw new Error("Use either a GLTF/GLB <file> argument or --js <path>, not both");
+  }
+
+  if (jsPath) {
+    return {
+      kind: "js",
+      modulePath: jsPath,
+    };
+  }
+
+  if (file) {
+    return {
+      kind: "gltf",
+      sourcePath: file,
+    };
+  }
+
+  throw new Error("Provide either a GLTF/GLB <file> argument or --js <path>");
 }
 
 function buildCameraOptions(
@@ -220,6 +262,29 @@ export function buildRenderOptions(sourcePath: string, options: unknown): Render
   return {
     render: buildRenderRequest(sourcePath, parsed),
     outputPath: resolveOutputPath(sourcePath, parsed.output, format),
+  };
+}
+
+export function buildRenderPlan(file: string | undefined, options: unknown): RenderExecutionPlan {
+  const parsed = renderCommandOptionsSchema.parse(options);
+  const format = resolveFormat(parsed.format, parsed.output);
+  const source = resolveRenderSource(file, parsed.js);
+
+  if (source.kind === "js") {
+    return {
+      kind: "js",
+      modulePath: source.modulePath,
+      outputPath: resolveOutputPath(source.modulePath, parsed.output, format),
+      width: parsed.width,
+      height: parsed.height,
+      format,
+      ...(parsed.dawnFlag.length > 0 ? { dawnFlags: parsed.dawnFlag } : {}),
+    };
+  }
+
+  return {
+    kind: "gltf",
+    ...buildRenderOptions(source.sourcePath, parsed),
   };
 }
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildBenchOptions,
   buildRenderOptions,
+  buildRenderPlan,
   parseLight,
   parseVector3,
   resolveFormat,
@@ -91,5 +92,32 @@ describe("cli helpers", () => {
       iterations: 3,
       format: "webp",
     });
+  });
+
+  it("builds a JS render plan", () => {
+    expect(
+      buildRenderPlan(undefined, {
+        js: "/tmp/scene.mjs",
+        width: 640,
+        height: 480,
+      }),
+    ).toEqual({
+      kind: "js",
+      modulePath: "/tmp/scene.mjs",
+      outputPath: "/tmp/scene.png",
+      width: 640,
+      height: 480,
+      format: "png",
+    });
+  });
+
+  it("rejects mixing a file argument with --js", () => {
+    expect(() =>
+      buildRenderPlan("/tmp/model.glb", {
+        js: "/tmp/scene.mjs",
+        width: 640,
+        height: 480,
+      }),
+    ).toThrow("Use either a GLTF/GLB <file> argument or --js <path>, not both");
   });
 });

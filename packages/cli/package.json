@@ -28,6 +28,7 @@
     "@rendergl/headless-three-webgpu": "workspace:*",
     "@rendergl/headless-three-webgpu-helpers": "workspace:*",
     "commander": "^13.1.0",
+    "three": "^0.184.0",
     "zod": "^4.1.5"
   }
 }

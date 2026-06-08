@@ -41,6 +41,12 @@ Render a GLB with the CLI:
 pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
 ```
 
+Render a custom JavaScript scene module with the CLI:
+
+```bash
+pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render --js ./scene.mjs --width 1280 --height 720 --output ./frame.png
+```
+
 Inspect a model without touching the GPU:
 
 ```bash
@@ -123,7 +129,19 @@ The CLI intentionally wraps the packages above instead of re-implementing render
 
 ```bash
 rgl render ./model.glb --output ./frame.png
+rgl render --js ./scene.mjs --output ./frame.png
 rgl render ./model.glb --light '{"type":"point","position":[2,3,4],"intensity":0.8,"color":"#ffd39b"}'
 rgl inspect ./model.glb
 rgl bench --iterations 20 --format png
+```
+
+For `--js`, export a default function or named `createScene` function that returns `{ scene, camera }`:
+
+```ts
+export default async function createScene({ THREE, width, height }) {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+
+  return { scene, camera };
+}
 ```

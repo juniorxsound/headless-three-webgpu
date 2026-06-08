@@ -6,7 +6,8 @@ import { Command } from "commander";
 import { runRendererBenchmark } from "@rendergl/headless-three-webgpu";
 import { inspectGltfAsset, renderGltf } from "@rendergl/headless-three-webgpu-helpers";
 
-import { buildBenchOptions, buildRenderOptions } from "./commands.js";
+import { buildBenchOptions, buildRenderPlan } from "./commands.js";
+import { renderSceneModule } from "./render-js.js";
 
 const program = new Command();
 
@@ -14,9 +15,10 @@ program.name("rgl").description("@rendergl/headless-three-webgpu CLI").version("
 
 program
   .command("render")
-  .argument("<file>", "Path to a .gltf or .glb asset")
+  .argument("[file]", "Path to a .gltf or .glb asset")
   .option("--width <number>", "Output width", "1024")
   .option("--height <number>", "Output height", "1024")
+  .option("--js <path>", "Path to a JavaScript scene module")
   .option("--output <path>", "Output file path")
   .option("--format <format>", "Output format: png or webp")
   .option("--background <color>", "Background color, e.g. #111111")
@@ -39,16 +41,35 @@ program
   .option("--fov <number>", "Camera field of view")
   .option("--dawn-flag <flag>", "Pass a Dawn flag", collect, [])
   .action(async (file, options) => {
-    const resolved = buildRenderOptions(file, options);
+    const plan = buildRenderPlan(file, options);
 
-    const result = await renderGltf(resolved.render);
-    await mkdir(dirname(resolved.outputPath), { recursive: true });
-    await writeFile(resolved.outputPath, result.buffer);
+    if (plan.kind === "js") {
+      const result = await renderSceneModule(plan);
+      await mkdir(dirname(plan.outputPath), { recursive: true });
+      await writeFile(plan.outputPath, result.buffer);
+
+      console.log(
+        JSON.stringify(
+          {
+            outputPath: plan.outputPath,
+            diagnostics: result.diagnostics,
+            modulePath: result.modulePath,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
+    const result = await renderGltf(plan.render);
+    await mkdir(dirname(plan.outputPath), { recursive: true });
+    await writeFile(plan.outputPath, result.buffer);
 
     console.log(
       JSON.stringify(
         {
-          outputPath: resolved.outputPath,
+          outputPath: plan.outputPath,
           diagnostics: result.diagnostics,
           inspection: result.inspection,
         },
