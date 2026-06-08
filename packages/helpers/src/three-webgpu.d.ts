@@ -1,5 +1,5 @@
 declare module "three/webgpu" {
-  import type { Camera, ColorRepresentation, RenderTarget, Scene } from "three";
+  import type { Camera, ColorRepresentation, RenderTarget, Scene, Texture } from "three";
 
   export class WebGPURenderer {
     constructor(parameters?: Record<string, unknown>);
@@ -24,6 +24,12 @@ declare module "three/webgpu" {
       textureIndex?: number,
       faceIndex?: number,
     ): Promise<ArrayBufferView>;
+    dispose(): void;
+  }
+
+  export class PMREMGenerator {
+    constructor(renderer: WebGPURenderer);
+    fromEquirectangular(texture: Texture): RenderTarget;
     dispose(): void;
   }
 }

@@ -56,7 +56,7 @@ pnpm exec rgl bench --width 1024 --height 1024 --iterations 10 --format png
 - `--js <path>`: render a scene module instead of a GLTF or GLB
 - `--dawn-flag <flag>`: repeatable Dawn runtime flags
 
-GLTF-only camera and lighting options:
+GLTF-only camera, lighting, and environment options:
 
 - `--background <color>`
 - `--lighting studio|flat|none`
@@ -71,6 +71,10 @@ GLTF-only camera and lighting options:
 - `--camera-position x,y,z`
 - `--camera-target x,y,z`
 - `--fov <number>`
+- `--env-map <path>`: equirectangular `.hdr` or `.ktx2` environment map
+- `--env-background`: use the environment map as scene background
+- `--env-blur <number>`: background blur from 0 to 1 (requires `--env-background`)
+- `--env-intensity <number>`: environment lighting intensity (0 to 10)
 
 Custom light JSON shapes:
 
@@ -80,6 +84,28 @@ Custom light JSON shapes:
 {"type":"hemisphere","skyColor":"#fff4dc","groundColor":"#d9e7ff","intensity":0.5}
 {"type":"point","position":[2,3,4],"intensity":1,"color":"#ffd39b","distance":0,"decay":2}
 ```
+
+## Environment Maps
+
+Render with image-based lighting using `.hdr` or `.ktx2` equirectangular environment maps:
+
+```bash
+pnpm exec rgl render ./model.glb --env-map ./studio.hdr --output ./frame.png
+```
+
+Show the environment as background with optional blur:
+
+```bash
+pnpm exec rgl render ./model.glb --env-map ./outdoor.hdr --env-background --env-blur 0.3 --output ./frame.png
+```
+
+Adjust environment lighting intensity:
+
+```bash
+pnpm exec rgl render ./model.glb --env-map ./studio.hdr --env-intensity 1.5 --output ./frame.png
+```
+
+Environment maps are only supported for GLTF/GLB renders, not JS scene modules.
 
 ## JS Scene Modules
 

@@ -1,11 +1,23 @@
+import { readFile } from "node:fs/promises";
+import { extname } from "node:path";
+
+import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
 import {
   AmbientLight,
   Box3,
   Color,
+  DataTexture,
+  DataUtils,
   DirectionalLight,
+  EquirectangularReflectionMapping,
+  FloatType,
+  HalfFloatType,
   HemisphereLight,
+  LinearFilter,
+  LinearSRGBColorSpace,
   PerspectiveCamera,
   PointLight,
+  RGBAFormat,
   Scene,
   Vector3,
   type Camera,
@@ -13,14 +25,18 @@ import {
   type Material,
   type Mesh,
   type Object3D,
+  type RenderTarget,
   type Texture,
 } from "three";
 import { createHeadlessWebGPURenderer } from "@rendergl/headless-three-webgpu";
+import { PMREMGenerator, type WebGPURenderer } from "three/webgpu";
 import type { z } from "zod";
 
 import { inspectGltfAsset } from "./inspect-gltf.js";
 import { loadGltfFromFile } from "./gltf-loader.js";
+import { loadNodeKtx2Texture } from "./node-ktx2-loader.js";
 import {
+  renderGltfEnvironmentOptionsSchema,
   renderGltfCameraOptionsSchema,
   renderGltfOptionsSchema,
   renderGltfSceneLightSchema,
@@ -34,10 +50,15 @@ import type {
 } from "./types.js";
 
 type ParsedLightingOptions = z.infer<typeof renderGltfOptionsSchema>["lighting"];
+type ParsedEnvironmentOptions = z.infer<typeof renderGltfEnvironmentOptionsSchema> | undefined;
 type ParsedCameraOptions = z.infer<typeof renderGltfCameraOptionsSchema> | undefined;
 type ParsedSceneLight = z.infer<typeof renderGltfSceneLightSchema>;
+type LoadedEnvironmentResources = {
+  sourceTexture: Texture;
+  pmremTarget: RenderTarget;
+};
 
-function normalizeSceneLight(light: ParsedSceneLight): RenderGltfSceneLight {
+export function normalizeSceneLight(light: ParsedSceneLight): RenderGltfSceneLight {
   switch (light.type) {
     case "ambient":
       return {
@@ -203,6 +224,119 @@ function addLighting(scene: Scene, lightingInput: ParsedLightingOptions): void {
   addCustomLights(scene, lighting.lights);
 }
 
+async function loadEnvironmentTexture(renderer: WebGPURenderer, path: string): Promise<Texture> {
+  const extension = extname(path).toLowerCase();
+
+  if (extension === ".ktx2") {
+    const arrayBuffer = await readFile(path);
+    const texture = await loadNodeKtx2Texture(
+      renderer,
+      arrayBuffer.buffer.slice(
+        arrayBuffer.byteOffset,
+        arrayBuffer.byteOffset + arrayBuffer.byteLength,
+      ),
+    );
+    texture.flipY = true;
+    texture.mapping = EquirectangularReflectionMapping;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  if (extension === ".hdr") {
+    const arrayBuffer = await readFile(path);
+    const hdr = new HDRLoader()
+      .setDataType(FloatType)
+      .parse(
+        arrayBuffer.buffer.slice(
+          arrayBuffer.byteOffset,
+          arrayBuffer.byteOffset + arrayBuffer.byteLength,
+        ),
+      );
+
+    const halfFloatData =
+      hdr.data instanceof Float32Array
+        ? Uint16Array.from(hdr.data, (value) => DataUtils.toHalfFloat(value))
+        : null;
+
+    if (!halfFloatData) {
+      throw new Error(
+        `HDR decode failed: HDRLoader returned unsupported data type "${hdr.data?.constructor?.name ?? "unknown"}"`,
+      );
+    }
+
+    const texture = new DataTexture(
+      halfFloatData,
+      hdr.width,
+      hdr.height,
+      RGBAFormat,
+      HalfFloatType,
+    );
+    texture.mapping = EquirectangularReflectionMapping;
+    texture.colorSpace = LinearSRGBColorSpace;
+    texture.magFilter = LinearFilter;
+    texture.minFilter = LinearFilter;
+    texture.generateMipmaps = false;
+    texture.flipY = true;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  throw new Error(`Unsupported environment map format "${extension}". Use .hdr or .ktx2`);
+}
+
+async function loadEnvironmentResources(
+  renderer: WebGPURenderer,
+  environment: NonNullable<ParsedEnvironmentOptions>,
+): Promise<LoadedEnvironmentResources> {
+  const sourceTexture = await loadEnvironmentTexture(renderer, environment.path);
+  const pmremGenerator = new PMREMGenerator(renderer);
+
+  try {
+    const pmremTarget = pmremGenerator.fromEquirectangular(sourceTexture);
+    return { sourceTexture, pmremTarget };
+  } catch (error) {
+    sourceTexture.dispose();
+    throw error;
+  } finally {
+    pmremGenerator.dispose();
+  }
+}
+
+async function applyEnvironment(
+  scene: Scene,
+  renderer: WebGPURenderer,
+  environment: ParsedEnvironmentOptions,
+): Promise<LoadedEnvironmentResources | null> {
+  if (!environment) {
+    return null;
+  }
+
+  const resources = await loadEnvironmentResources(renderer, environment);
+  scene.environment = resources.pmremTarget.texture;
+  scene.environmentIntensity = environment.intensity ?? 1;
+
+  if (environment.background) {
+    scene.background =
+      environment.blur && environment.blur > 0
+        ? resources.pmremTarget.texture
+        : resources.sourceTexture;
+    scene.backgroundBlurriness = environment.blur ?? 0;
+    scene.backgroundIntensity = environment.intensity ?? 1;
+    renderer.setClearColor(new Color(0x000000), 1);
+  }
+
+  return resources;
+}
+
+function disposeEnvironmentResources(resources: LoadedEnvironmentResources | null): void {
+  if (!resources) {
+    return;
+  }
+
+  resources.pmremTarget.dispose();
+  resources.sourceTexture.dispose();
+}
+
 function resolveCamera(
   root: Object3D,
   width: number,
@@ -275,6 +409,7 @@ export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfRe
   const rendererHandle = renderer.unsafeGetWebGpuRenderer();
   const inspection = await inspectGltfAsset(options.path);
   let loadedScene: Object3D | null = null;
+  let environmentResources: LoadedEnvironmentResources | null = null;
 
   try {
     const gltf = await loadGltfFromFile(options.path, rendererHandle);
@@ -286,6 +421,7 @@ export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfRe
 
     scene.add(gltf.scene);
     addLighting(scene, options.lighting ?? "studio");
+    environmentResources = await applyEnvironment(scene, rendererHandle, options.environment);
 
     const camera = resolveCamera(gltf.scene, options.width, options.height, options.camera);
     await renderer.render(scene, camera);
@@ -297,6 +433,7 @@ export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfRe
       inspection,
     };
   } finally {
+    disposeEnvironmentResources(environmentResources);
     if (loadedScene) {
       disposeSceneGraph(loadedScene);
     }

@@ -55,6 +55,15 @@ export const renderGltfLightingOptionsSchema = z
   })
   .strict();
 
+export const renderGltfEnvironmentOptionsSchema = z
+  .object({
+    path: z.string().min(1),
+    background: z.boolean().optional(),
+    blur: z.number().finite().min(0).max(1).optional(),
+    intensity: z.number().finite().positive().max(10).optional(),
+  })
+  .strict();
+
 export const renderGltfCameraOptionsSchema = z
   .object({
     position: vector3Schema.optional(),
@@ -72,6 +81,7 @@ export const renderGltfOptionsSchema = z
     format: z.enum(["png", "webp"]).optional(),
     background: z.string().min(1).optional(),
     lighting: z.union([gltfLightingPresetSchema, renderGltfLightingOptionsSchema]).optional(),
+    environment: renderGltfEnvironmentOptionsSchema.optional(),
     camera: renderGltfCameraOptionsSchema.optional(),
     dawnFlags: z.array(z.string().min(1)).optional(),
   })

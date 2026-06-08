@@ -123,6 +123,22 @@ const result = await renderGltf({
 });
 ```
 
+Render with image-based lighting using an HDR environment map:
+
+```ts
+const result = await renderGltf({
+  path: "./model.glb",
+  width: 1440,
+  height: 900,
+  environment: {
+    path: "./studio.hdr",
+    background: true,
+    blur: 0.2,
+    intensity: 1.2,
+  },
+});
+```
+
 ## CLI
 
 The CLI intentionally wraps the packages above instead of re-implementing renderer logic.
@@ -131,9 +147,12 @@ The CLI intentionally wraps the packages above instead of re-implementing render
 rgl render ./model.glb --output ./frame.png
 rgl render --js ./scene.mjs --output ./frame.png
 rgl render ./model.glb --light '{"type":"point","position":[2,3,4],"intensity":0.8,"color":"#ffd39b"}'
+rgl render ./model.glb --env-map ./studio.hdr --env-background --env-intensity 1.2
 rgl inspect ./model.glb
 rgl bench --iterations 20 --format png
 ```
+
+Environment maps currently support local equirectangular `.hdr` and `.ktx2` files for GLTF/GLB renders. Use `--env-background` to show the map behind the model, `--env-intensity` to control IBL strength, and `--env-blur` to soften the visible background.
 
 For `--js`, export a named `setup({ width, height })` function that returns `{ scene, camera }`. You can also export an optional `update(delta)` hook that runs once before the frame is rendered:
 

@@ -55,6 +55,13 @@ export interface RenderGltfLightingOptions {
   lights?: RenderGltfSceneLight[];
 }
 
+export interface RenderGltfEnvironmentOptions {
+  path: string;
+  background?: boolean;
+  blur?: number;
+  intensity?: number;
+}
+
 export interface RenderGltfCameraOptions {
   position?: [number, number, number];
   target?: [number, number, number];
@@ -69,6 +76,7 @@ export interface RenderGltfOptions extends Omit<RendererRuntimeOptions, "powerPr
   format?: OutputFormat;
   background?: string;
   lighting?: GltfLightingPreset | RenderGltfLightingOptions;
+  environment?: RenderGltfEnvironmentOptions;
   camera?: RenderGltfCameraOptions;
 }
 

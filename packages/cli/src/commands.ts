@@ -3,6 +3,8 @@ import { basename, dirname, extname, join } from "node:path";
 import type { OutputFormat, RendererBenchmarkOptions } from "@rendergl/headless-three-webgpu";
 import {
   gltfLightingPresetSchema,
+  normalizeSceneLight,
+  type RenderGltfEnvironmentOptions,
   renderGltfOptionsSchema,
   renderGltfSceneLightSchema,
   type RenderGltfCameraOptions,
@@ -44,63 +46,68 @@ const lightArgumentSchema = z.string().transform((value, context) => {
   }
 });
 
-function normalizeSceneLight(
-  light: z.infer<typeof renderGltfSceneLightSchema>,
-): RenderGltfSceneLight {
-  switch (light.type) {
-    case "ambient":
-      return {
-        type: "ambient",
-        ...(light.color !== undefined ? { color: light.color } : {}),
-        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
-      };
-    case "directional":
-      return {
-        type: "directional",
-        position: light.position,
-        ...(light.color !== undefined ? { color: light.color } : {}),
-        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
-      };
-    case "hemisphere":
-      return {
-        type: "hemisphere",
-        ...(light.skyColor !== undefined ? { skyColor: light.skyColor } : {}),
-        ...(light.groundColor !== undefined ? { groundColor: light.groundColor } : {}),
-        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
-      };
-    case "point":
-      return {
-        type: "point",
-        position: light.position,
-        ...(light.color !== undefined ? { color: light.color } : {}),
-        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
-        ...(light.distance !== undefined ? { distance: light.distance } : {}),
-        ...(light.decay !== undefined ? { decay: light.decay } : {}),
-      };
-  }
-}
+const renderCommandOptionsSchema = z
+  .object({
+    width: z.coerce.number().int().positive(),
+    height: z.coerce.number().int().positive(),
+    js: z.string().min(1).optional(),
+    format: outputFormatSchema.optional(),
+    output: z.string().min(1).optional(),
+    background: z.string().min(1).optional(),
+    lighting: gltfLightingPresetSchema.optional(),
+    ambientIntensity: z.coerce.number().finite().nonnegative().optional(),
+    keyIntensity: z.coerce.number().finite().nonnegative().optional(),
+    fillIntensity: z.coerce.number().finite().nonnegative().optional(),
+    rimIntensity: z.coerce.number().finite().nonnegative().optional(),
+    keyPosition: vector3ArgumentSchema.optional(),
+    fillPosition: vector3ArgumentSchema.optional(),
+    rimPosition: vector3ArgumentSchema.optional(),
+    light: z.array(lightArgumentSchema).default([]),
+    cameraPosition: vector3ArgumentSchema.optional(),
+    cameraTarget: vector3ArgumentSchema.optional(),
+    fov: z.coerce.number().finite().positive().optional(),
+    envMap: z.string().min(1).optional(),
+    envBackground: z.boolean().optional(),
+    envBlur: z.coerce.number().finite().min(0).max(1).optional(),
+    envIntensity: z.coerce.number().finite().positive().max(10).optional(),
+    dawnFlag: z.array(z.string().min(1)).default([]),
+  })
+  .superRefine((value, context) => {
+    if (value.envMap !== undefined) {
+      if (value.envBlur !== undefined && !value.envBackground) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Use --env-background when setting --env-blur",
+          path: ["envBlur"],
+        });
+      }
+      return;
+    }
 
-const renderCommandOptionsSchema = z.object({
-  width: z.coerce.number().int().positive(),
-  height: z.coerce.number().int().positive(),
-  js: z.string().min(1).optional(),
-  format: outputFormatSchema.optional(),
-  output: z.string().min(1).optional(),
-  background: z.string().min(1).optional(),
-  lighting: gltfLightingPresetSchema.optional(),
-  ambientIntensity: z.coerce.number().finite().nonnegative().optional(),
-  keyIntensity: z.coerce.number().finite().nonnegative().optional(),
-  fillIntensity: z.coerce.number().finite().nonnegative().optional(),
-  rimIntensity: z.coerce.number().finite().nonnegative().optional(),
-  keyPosition: vector3ArgumentSchema.optional(),
-  fillPosition: vector3ArgumentSchema.optional(),
-  rimPosition: vector3ArgumentSchema.optional(),
-  light: z.array(lightArgumentSchema).default([]),
-  cameraPosition: vector3ArgumentSchema.optional(),
-  cameraTarget: vector3ArgumentSchema.optional(),
-  fov: z.coerce.number().finite().positive().optional(),
-  dawnFlag: z.array(z.string().min(1)).default([]),
-});
+    if (value.envBackground) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Use --env-map when setting --env-background",
+        path: ["envBackground"],
+      });
+    }
+
+    if (value.envBlur !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Use --env-map when setting --env-blur",
+        path: ["envBlur"],
+      });
+    }
+
+    if (value.envIntensity !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Use --env-map when setting --env-intensity",
+        path: ["envIntensity"],
+      });
+    }
+  });
 
 const benchCommandOptionsSchema = z.object({
   width: z.coerce.number().int().positive(),
@@ -232,12 +239,29 @@ function buildLightingOptions(
   return finalizeOptionalObject<RenderGltfLightingOptions>(lighting);
 }
 
+function buildEnvironmentOptions(
+  options: z.infer<typeof renderCommandOptionsSchema>,
+): RenderGltfEnvironmentOptions | undefined {
+  if (!options.envMap) {
+    return undefined;
+  }
+
+  const environment: Partial<RenderGltfEnvironmentOptions> = {
+    path: options.envMap,
+  };
+  assignDefined(environment, "background", options.envBackground);
+  assignDefined(environment, "blur", options.envBlur);
+  assignDefined(environment, "intensity", options.envIntensity);
+  return environment as RenderGltfEnvironmentOptions;
+}
+
 function buildRenderRequest(
   sourcePath: string,
   options: z.infer<typeof renderCommandOptionsSchema>,
 ): RenderGltfOptions {
   const format = resolveFormat(options.format, options.output);
   const lighting = buildLightingOptions(options);
+  const environment = buildEnvironmentOptions(options);
   const camera = buildCameraOptions(options);
   const render: Partial<RenderGltfOptions> = {
     path: sourcePath,
@@ -247,6 +271,7 @@ function buildRenderRequest(
   };
   assignDefined(render, "background", options.background);
   assignDefined(render, "lighting", lighting);
+  assignDefined(render, "environment", environment);
   assignDefined(render, "camera", camera);
   if (options.dawnFlag.length > 0) {
     render.dawnFlags = options.dawnFlag;
@@ -271,6 +296,10 @@ export function buildRenderPlan(file: string | undefined, options: unknown): Ren
   const source = resolveRenderSource(file, parsed.js);
 
   if (source.kind === "js") {
+    if (parsed.envMap !== undefined) {
+      throw new Error("Environment map options are currently only supported for GLTF/GLB renders");
+    }
+
     return {
       kind: "js",
       modulePath: source.modulePath,

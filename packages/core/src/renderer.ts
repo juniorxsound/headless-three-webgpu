@@ -1,10 +1,10 @@
 import {
   Color,
+  HalfFloatType,
   NoToneMapping,
   RenderTarget,
   RGBAFormat,
   SRGBColorSpace,
-  UnsignedByteType,
   type Camera,
   type Scene,
 } from "three";
@@ -13,10 +13,12 @@ import { WebGPURenderer } from "three/webgpu";
 import { createHeadlessWebGpuCanvas } from "./headless-webgpu-canvas.js";
 import { encodeImageToBuffer } from "./image-encoding.js";
 import {
+  asHdrPixels,
   asUint8Bytes,
   convertLinearRgba8ToSrgb,
   deflateRgba8UnormRows,
   rgbaReadbackBytesPerRow,
+  toSrgbRgba8Buffer,
 } from "./readback.js";
 import { createRendererRuntime } from "./runtime.js";
 
@@ -32,7 +34,7 @@ function createReadbackTarget(width: number, height: number): RenderTarget {
     depthBuffer: true,
     stencilBuffer: false,
     format: RGBAFormat,
-    type: UnsignedByteType,
+    type: HalfFloatType,
   });
   target.texture.generateMipmaps = false;
   return target;
@@ -86,6 +88,10 @@ export async function createHeadlessWebGPURenderer(
   const readPixels = async (): Promise<Uint8Array> => {
     ensureActive();
     const view = await renderer.readRenderTargetPixelsAsync(target, 0, 0, width, height);
+    if (view instanceof Uint16Array || view instanceof Float32Array) {
+      return toSrgbRgba8Buffer(asHdrPixels(view), width, height);
+    }
+
     const bytes = asUint8Bytes(view);
     const bytesPerRow = bytes.byteLength / height;
     const packed =
@@ -98,8 +104,6 @@ export async function createHeadlessWebGPURenderer(
             bytesPerRow || rgbaReadbackBytesPerRow(width),
           );
 
-    // Rendering into a RenderTarget skips the final sRGB display conversion,
-    // so the raw readback stays linear unless we resolve it ourselves.
     return convertLinearRgba8ToSrgb(packed);
   };
 

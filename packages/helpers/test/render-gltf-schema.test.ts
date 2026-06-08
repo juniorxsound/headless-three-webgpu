@@ -20,6 +20,12 @@ describe("renderGltfOptionsSchema", () => {
             },
           ],
         },
+        environment: {
+          path: "/tmp/studio.hdr",
+          background: true,
+          blur: 0.2,
+          intensity: 1.15,
+        },
       }),
     ).toMatchObject({
       path: "/tmp/model.glb",

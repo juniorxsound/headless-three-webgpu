@@ -39,6 +39,10 @@ program
   .option("--camera-position <xyz>", "Camera position as x,y,z")
   .option("--camera-target <xyz>", "Camera target as x,y,z")
   .option("--fov <number>", "Camera field of view")
+  .option("--env-map <path>", "Path to an equirectangular .hdr or .ktx2 environment map")
+  .option("--env-background", "Use the environment map as the scene background")
+  .option("--env-blur <number>", "Background blur from 0 to 1 when using --env-background")
+  .option("--env-intensity <number>", "Environment lighting intensity")
   .option("--dawn-flag <flag>", "Pass a Dawn flag", collect, [])
   .action(async (file, options) => {
     const plan = buildRenderPlan(file, options);

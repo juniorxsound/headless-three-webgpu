@@ -50,6 +50,10 @@ describe("cli helpers", () => {
       light: ['{"type":"point","position":[2,3,4],"intensity":0.75}'],
       cameraPosition: "1,2,3",
       cameraTarget: "0,0,0",
+      envMap: "/tmp/studio.hdr",
+      envBackground: true,
+      envBlur: 0.25,
+      envIntensity: 1.4,
     });
 
     expect(render).toMatchObject({
@@ -74,8 +78,35 @@ describe("cli helpers", () => {
         position: [1, 2, 3],
         target: [0, 0, 0],
       },
+      environment: {
+        path: "/tmp/studio.hdr",
+        background: true,
+        blur: 0.25,
+        intensity: 1.4,
+      },
     });
     expect(outputPath).toBe("/tmp/model.png");
+  });
+
+  it("rejects environment controls without an environment map", () => {
+    expect(() =>
+      buildRenderOptions("/tmp/model.glb", {
+        width: 800,
+        height: 600,
+        envIntensity: 1.2,
+      }),
+    ).toThrow("Use --env-map when setting --env-intensity");
+  });
+
+  it("rejects blur without using the environment as background", () => {
+    expect(() =>
+      buildRenderOptions("/tmp/model.glb", {
+        width: 800,
+        height: 600,
+        envMap: "/tmp/studio.hdr",
+        envBlur: 0.5,
+      }),
+    ).toThrow("Use --env-background when setting --env-blur");
   });
 
   it("builds benchmark options for the core package", () => {
@@ -119,5 +150,16 @@ describe("cli helpers", () => {
         height: 480,
       }),
     ).toThrow("Use either a GLTF/GLB <file> argument or --js <path>, not both");
+  });
+
+  it("rejects environment maps for JS renders", () => {
+    expect(() =>
+      buildRenderPlan(undefined, {
+        js: "/tmp/scene.mjs",
+        width: 640,
+        height: 480,
+        envMap: "/tmp/studio.hdr",
+      }),
+    ).toThrow("Environment map options are currently only supported for GLTF/GLB renders");
   });
 });

@@ -116,6 +116,7 @@ Important helper parameters:
 - `dawnFlags?: string[]`
 - `lighting?: "studio" | "flat" | "none" | lightingObject`
 - `camera?: { position?, target?, fov?, useEmbeddedCamera? }`
+- `environment?: environmentObject`
 
 Lighting object:
 
@@ -135,6 +136,33 @@ Custom lights:
 - `directional`
 - `hemisphere`
 - `point`
+
+Environment object:
+
+- `path: string` - path to `.hdr` or `.ktx2` equirectangular map
+- `background?: boolean` - use as scene background
+- `blur?: number` - background blur (0 to 1, requires `background: true`)
+- `intensity?: number` - lighting intensity (0 to 10)
+
+Example with environment map:
+
+```ts
+import { renderGltf } from "@rendergl/headless-three-webgpu-helpers";
+
+const result = await renderGltf({
+  path: "./model.glb",
+  width: 1024,
+  height: 1024,
+  format: "png",
+  lighting: "none",
+  environment: {
+    path: "./studio.hdr",
+    background: true,
+    blur: 0.2,
+    intensity: 1.2,
+  },
+});
+```
 
 ## Runtime Options
 
