@@ -23,7 +23,12 @@
   },
   "dependencies": {
     "sharp": "^0.34.5",
-    "three": "^0.184.0",
     "webgpu": "^0.4.0"
+  },
+  "devDependencies": {
+    "three": "^0.184.0"
+  },
+  "peerDependencies": {
+    "three": "^0.184.0"
   }
 }
