@@ -135,15 +135,26 @@ rgl inspect ./model.glb
 rgl bench --iterations 20 --format png
 ```
 
-For `--js`, export a default function or named `createScene` function that returns `{ scene, camera }`:
+For `--js`, export a named `setup({ width, height })` function that returns `{ scene, camera }`. You can also export an optional `update(delta)` hook that runs once before the frame is rendered:
 
 ```ts
 import * as THREE from "three/webgpu";
 
-export default async function createScene({ width, height }) {
+let cube: THREE.Mesh;
+
+export async function setup({ width, height }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+  const geometry = new THREE.BoxGeometry();
+  const material = new THREE.MeshBasicMaterial({ color: "#7cc4ff" });
+
+  cube = new THREE.Mesh(geometry, material);
+  scene.add(cube);
 
   return { scene, camera };
+}
+
+export function update(delta) {
+  cube.rotation.y += delta;
 }
 ```
