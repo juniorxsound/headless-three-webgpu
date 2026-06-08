@@ -12,7 +12,7 @@ import type { VideoCameraPreset, VideoContainer, VideoExecutionPlan } from "./co
 import { createFfmpegSink, type FrameSink } from "./encoder.js";
 import { loadSceneModule } from "./render-js.js";
 
-export interface VideoRenderResult {
+interface VideoRenderResult {
   outputPath: string;
   container: VideoContainer;
   frames: number;
@@ -23,7 +23,7 @@ export interface VideoRenderResult {
   diagnostics: HeadlessWebGPURendererDiagnostics;
 }
 
-export interface CameraMotion {
+interface CameraMotion {
   preset: VideoCameraPreset;
   degrees: number;
   ease: boolean;

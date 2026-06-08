@@ -9,7 +9,7 @@ export interface FrameSink {
   abort: () => void;
 }
 
-export interface FfmpegSinkOptions {
+interface FfmpegSinkOptions {
   outputPath: string;
   width: number;
   height: number;
