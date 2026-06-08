@@ -1,3 +1,8 @@
+---
+name: rgl-core
+description: Use the core and helper Node.js APIs for headless WebGPU rendering.
+---
+
 # rgl-core
 
 Use this skill when you need the programmatic API from Node.js.

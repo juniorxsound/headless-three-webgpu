@@ -1,3 +1,8 @@
+---
+name: rgl-cli
+description: Use the rgl CLI to render, inspect, and benchmark assets.
+---
+
 # rgl-cli
 
 Use this skill when you need to render or inspect assets from the command line.
