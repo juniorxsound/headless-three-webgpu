@@ -20,9 +20,9 @@ Headless browser rendering can be heavy, slow to bootstrap, or awkward to integr
 
 ## Packages
 
-- `@rendergl/three-headless`: core headless renderer runtime and API
-- `@rendergl/three-headless-helpers`: GLTF loading, inspection, and convenience rendering helpers
-- `@rendergl/three-headless-cli`: the `rgl` CLI
+- `@rendergl/headless-three-webgpu`: core headless renderer runtime and API
+- `@rendergl/headless-three-webgpu-helpers`: GLTF loading, inspection, and convenience rendering helpers
+- `@rendergl/headless-three-webgpu-cli`: the `rgl` CLI
 
 ## Quickstart
 
@@ -38,19 +38,22 @@ pnpm test
 Render a GLB with the CLI:
 
 ```bash
-pnpm --filter @rendergl/three-headless-cli exec rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
+pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
 ```
 
 Inspect a model without touching the GPU:
 
 ```bash
-pnpm --filter @rendergl/three-headless-cli exec rgl inspect ./model.glb
+pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl inspect ./model.glb
 ```
 
 ## Core API
 
 ```ts
-import { createHeadlessWebGPURenderer, createRendererRuntime } from "@rendergl/three-headless";
+import {
+  createHeadlessWebGPURenderer,
+  createRendererRuntime,
+} from "@rendergl/headless-three-webgpu";
 import {
   AmbientLight,
   BoxGeometry,
@@ -93,7 +96,7 @@ await runtime.dispose();
 GLTF-specific conveniences live in `packages/helpers` so the core renderer stays generic:
 
 ```ts
-import { renderGltf } from "@rendergl/three-headless-helpers";
+import { renderGltf } from "@rendergl/headless-three-webgpu-helpers";
 
 const result = await renderGltf({
   path: "./model.glb",

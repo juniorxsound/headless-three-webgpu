@@ -1,5 +1,5 @@
 {
-  "name": "@rendergl/three-headless-workspace",
+  "name": "@rendergl/headless-three-webgpu-workspace",
   "private": true,
   "scripts": {
     "build": "turbo run build",

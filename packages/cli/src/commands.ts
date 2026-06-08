@@ -1,6 +1,6 @@
 import { basename, dirname, extname, join } from "node:path";
 
-import type { OutputFormat, RendererBenchmarkOptions } from "@rendergl/three-headless";
+import type { OutputFormat, RendererBenchmarkOptions } from "@rendergl/headless-three-webgpu";
 import {
   gltfLightingPresetSchema,
   renderGltfOptionsSchema,
@@ -9,7 +9,7 @@ import {
   type RenderGltfLightingOptions,
   type RenderGltfOptions,
   type RenderGltfSceneLight,
-} from "@rendergl/three-headless-helpers";
+} from "@rendergl/headless-three-webgpu-helpers";
 import { z } from "zod";
 
 const outputFormatSchema = z.enum(["png", "webp"]);

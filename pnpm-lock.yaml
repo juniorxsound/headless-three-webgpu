@@ -41,10 +41,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@rendergl/three-headless':
+      '@rendergl/headless-three-webgpu':
         specifier: workspace:*
         version: link:../core
-      '@rendergl/three-headless-helpers':
+      '@rendergl/headless-three-webgpu-helpers':
         specifier: workspace:*
         version: link:../helpers
       commander:
@@ -68,7 +68,7 @@ importers:
 
   packages/helpers:
     dependencies:
-      '@rendergl/three-headless':
+      '@rendergl/headless-three-webgpu':
         specifier: workspace:*
         version: link:../core
       draco3d:

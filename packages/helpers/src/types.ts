@@ -2,7 +2,7 @@ import type {
   HeadlessWebGPURendererDiagnostics,
   OutputFormat,
   RendererRuntimeOptions,
-} from "@rendergl/three-headless";
+} from "@rendergl/headless-three-webgpu";
 
 export type GltfLightingPreset = "studio" | "flat" | "none";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@rendergl/three-headless",
+  "name": "@rendergl/headless-three-webgpu",
   "version": "0.1.0",
   "description": "Headless Dawn/WebGPU + Three.js renderer runtime for Node.js",
   "license": "Apache-2.0",

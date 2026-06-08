@@ -3,14 +3,14 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import { Command } from "commander";
-import { runRendererBenchmark } from "@rendergl/three-headless";
-import { inspectGltfAsset, renderGltf } from "@rendergl/three-headless-helpers";
+import { runRendererBenchmark } from "@rendergl/headless-three-webgpu";
+import { inspectGltfAsset, renderGltf } from "@rendergl/headless-three-webgpu-helpers";
 
 import { buildBenchOptions, buildRenderOptions } from "./commands.js";
 
 const program = new Command();
 
-program.name("rgl").description("@rendergl/three-headless CLI").version("0.1.0");
+program.name("rgl").description("@rendergl/headless-three-webgpu CLI").version("0.1.0");
 
 program
   .command("render")

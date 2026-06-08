@@ -15,7 +15,7 @@ import {
   type Object3D,
   type Texture,
 } from "three";
-import { createHeadlessWebGPURenderer } from "@rendergl/three-headless";
+import { createHeadlessWebGPURenderer } from "@rendergl/headless-three-webgpu";
 import type { z } from "zod";
 
 import { inspectGltfAsset } from "./inspect-gltf.js";
