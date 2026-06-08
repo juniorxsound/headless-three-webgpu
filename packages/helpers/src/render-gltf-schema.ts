@@ -1,9 +1,45 @@
 import { z } from "zod";
 
 const vector3Schema = z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]);
-const powerPreferenceSchema = z.enum(["low-power", "high-performance"]);
+const lightColorSchema = z.union([z.string().min(1), z.number().finite().nonnegative()]);
 
 export const gltfLightingPresetSchema = z.enum(["studio", "flat", "none"]);
+
+export const renderGltfSceneLightSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("ambient"),
+      color: lightColorSchema.optional(),
+      intensity: z.number().finite().nonnegative().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("directional"),
+      color: lightColorSchema.optional(),
+      intensity: z.number().finite().nonnegative().optional(),
+      position: vector3Schema,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("hemisphere"),
+      skyColor: lightColorSchema.optional(),
+      groundColor: lightColorSchema.optional(),
+      intensity: z.number().finite().nonnegative().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("point"),
+      color: lightColorSchema.optional(),
+      intensity: z.number().finite().nonnegative().optional(),
+      position: vector3Schema,
+      distance: z.number().finite().nonnegative().optional(),
+      decay: z.number().finite().nonnegative().optional(),
+    })
+    .strict(),
+]);
 
 export const renderGltfLightingOptionsSchema = z
   .object({
@@ -15,6 +51,7 @@ export const renderGltfLightingOptionsSchema = z
     keyPosition: vector3Schema.optional(),
     fillPosition: vector3Schema.optional(),
     rimPosition: vector3Schema.optional(),
+    lights: z.array(renderGltfSceneLightSchema).optional(),
   })
   .strict();
 
@@ -37,6 +74,5 @@ export const renderGltfOptionsSchema = z
     lighting: z.union([gltfLightingPresetSchema, renderGltfLightingOptionsSchema]).optional(),
     camera: renderGltfCameraOptionsSchema.optional(),
     dawnFlags: z.array(z.string().min(1)).optional(),
-    powerPreference: powerPreferenceSchema.optional(),
   })
   .strict();

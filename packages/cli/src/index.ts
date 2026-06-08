@@ -28,11 +28,16 @@ program
   .option("--key-position <xyz>", "Key light position as x,y,z")
   .option("--fill-position <xyz>", "Fill light position as x,y,z")
   .option("--rim-position <xyz>", "Rim light position as x,y,z")
+  .option(
+    "--light <json>",
+    'Add a custom scene light as JSON. Repeatable. Example: --light \'{"type":"point","position":[2,3,4],"intensity":1.2}\'',
+    collect,
+    [],
+  )
   .option("--camera-position <xyz>", "Camera position as x,y,z")
   .option("--camera-target <xyz>", "Camera target as x,y,z")
   .option("--fov <number>", "Camera field of view")
   .option("--dawn-flag <flag>", "Pass a Dawn flag", collect, [])
-  .option("--power-preference <mode>", "GPU power preference")
   .action(async (file, options) => {
     const resolved = buildRenderOptions(file, options);
 
@@ -69,7 +74,6 @@ program
   .option("--iterations <number>", "Benchmark iterations", "10")
   .option("--format <format>", "Output format: png or webp")
   .option("--dawn-flag <flag>", "Pass a Dawn flag", collect, [])
-  .option("--power-preference <mode>", "GPU power preference")
   .action(async (options) => {
     const result = await runRendererBenchmark(buildBenchOptions(options));
     console.log(JSON.stringify(result, null, 2));

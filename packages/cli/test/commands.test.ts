@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildBenchOptions,
   buildRenderOptions,
+  parseLight,
   parseVector3,
   resolveFormat,
   resolveOutputPath,
@@ -15,6 +16,17 @@ describe("cli helpers", () => {
 
   it("rejects invalid vectors", () => {
     expect(() => parseVector3("1,2")).toThrow("Expected a comma-separated vector");
+  });
+
+  it("parses custom light JSON", () => {
+    expect(
+      parseLight('{"type":"point","position":[2,3,4],"intensity":1.1,"color":"#ffffff"}'),
+    ).toEqual({
+      type: "point",
+      position: [2, 3, 4],
+      intensity: 1.1,
+      color: "#ffffff",
+    });
   });
 
   it("defaults output format from file extension", () => {
@@ -34,6 +46,7 @@ describe("cli helpers", () => {
       ambientIntensity: 0.5,
       keyIntensity: 1.25,
       keyPosition: "4,5,6",
+      light: ['{"type":"point","position":[2,3,4],"intensity":0.75}'],
       cameraPosition: "1,2,3",
       cameraTarget: "0,0,0",
     });
@@ -48,6 +61,13 @@ describe("cli helpers", () => {
         ambientIntensity: 0.5,
         keyIntensity: 1.25,
         keyPosition: [4, 5, 6],
+        lights: [
+          {
+            type: "point",
+            position: [2, 3, 4],
+            intensity: 0.75,
+          },
+        ],
       },
       camera: {
         position: [1, 2, 3],

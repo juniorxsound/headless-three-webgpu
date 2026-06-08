@@ -3,10 +3,13 @@ import {
   Box3,
   Color,
   DirectionalLight,
+  HemisphereLight,
   PerspectiveCamera,
+  PointLight,
   Scene,
   Vector3,
   type Camera,
+  type ColorRepresentation,
   type Material,
   type Mesh,
   type Object3D,
@@ -17,12 +20,56 @@ import type { z } from "zod";
 
 import { inspectGltfAsset } from "./inspect-gltf.js";
 import { loadGltfFromFile } from "./gltf-loader.js";
-import { renderGltfCameraOptionsSchema, renderGltfOptionsSchema } from "./render-gltf-schema.js";
+import {
+  renderGltfCameraOptionsSchema,
+  renderGltfOptionsSchema,
+  renderGltfSceneLightSchema,
+} from "./render-gltf-schema.js";
 
-import type { RenderGltfLightingOptions, RenderGltfOptions, RenderGltfResult } from "./types.js";
+import type {
+  RenderGltfLightingOptions,
+  RenderGltfOptions,
+  RenderGltfResult,
+  RenderGltfSceneLight,
+} from "./types.js";
 
 type ParsedLightingOptions = z.infer<typeof renderGltfOptionsSchema>["lighting"];
 type ParsedCameraOptions = z.infer<typeof renderGltfCameraOptionsSchema> | undefined;
+type ParsedSceneLight = z.infer<typeof renderGltfSceneLightSchema>;
+
+function normalizeSceneLight(light: ParsedSceneLight): RenderGltfSceneLight {
+  switch (light.type) {
+    case "ambient":
+      return {
+        type: "ambient",
+        ...(light.color !== undefined ? { color: light.color } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+      };
+    case "directional":
+      return {
+        type: "directional",
+        position: light.position,
+        ...(light.color !== undefined ? { color: light.color } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+      };
+    case "hemisphere":
+      return {
+        type: "hemisphere",
+        ...(light.skyColor !== undefined ? { skyColor: light.skyColor } : {}),
+        ...(light.groundColor !== undefined ? { groundColor: light.groundColor } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+      };
+    case "point":
+      return {
+        type: "point",
+        position: light.position,
+        ...(light.color !== undefined ? { color: light.color } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+        ...(light.distance !== undefined ? { distance: light.distance } : {}),
+        ...(light.decay !== undefined ? { decay: light.decay } : {}),
+      };
+  }
+}
 
 function resolveLightingOptions(lighting: ParsedLightingOptions): RenderGltfLightingOptions {
   if (!lighting) {
@@ -58,6 +105,9 @@ function resolveLightingOptions(lighting: ParsedLightingOptions): RenderGltfLigh
   if (lighting.rimPosition) {
     resolved.rimPosition = lighting.rimPosition;
   }
+  if (lighting.lights) {
+    resolved.lights = lighting.lights.map(normalizeSceneLight);
+  }
 
   return {
     preset: "studio",
@@ -65,11 +115,62 @@ function resolveLightingOptions(lighting: ParsedLightingOptions): RenderGltfLigh
   };
 }
 
+function resolveLightColor(
+  color: ColorRepresentation | undefined,
+  fallback: ColorRepresentation,
+): ColorRepresentation {
+  return color ?? fallback;
+}
+
+function addCustomLights(scene: Scene, lights: RenderGltfSceneLight[] | undefined): void {
+  if (!lights) {
+    return;
+  }
+
+  for (const light of lights) {
+    switch (light.type) {
+      case "ambient":
+        scene.add(new AmbientLight(resolveLightColor(light.color, 0xffffff), light.intensity ?? 1));
+        break;
+      case "directional": {
+        const directionalLight = new DirectionalLight(
+          resolveLightColor(light.color, 0xffffff),
+          light.intensity ?? 1,
+        );
+        directionalLight.position.set(light.position[0], light.position[1], light.position[2]);
+        scene.add(directionalLight);
+        break;
+      }
+      case "hemisphere":
+        scene.add(
+          new HemisphereLight(
+            resolveLightColor(light.skyColor, 0xffffff),
+            resolveLightColor(light.groundColor, 0x444444),
+            light.intensity ?? 1,
+          ),
+        );
+        break;
+      case "point": {
+        const pointLight = new PointLight(
+          resolveLightColor(light.color, 0xffffff),
+          light.intensity ?? 1,
+          light.distance ?? 0,
+          light.decay ?? 2,
+        );
+        pointLight.position.set(light.position[0], light.position[1], light.position[2]);
+        scene.add(pointLight);
+        break;
+      }
+    }
+  }
+}
+
 function addLighting(scene: Scene, lightingInput: ParsedLightingOptions): void {
   const lighting = resolveLightingOptions(lightingInput);
   const preset = lighting.preset ?? "studio";
 
   if (preset === "none") {
+    addCustomLights(scene, lighting.lights);
     return;
   }
 
@@ -79,6 +180,7 @@ function addLighting(scene: Scene, lightingInput: ParsedLightingOptions): void {
     const keyPosition = lighting.keyPosition ?? [3, 5, 4];
     key.position.set(keyPosition[0], keyPosition[1], keyPosition[2]);
     scene.add(key);
+    addCustomLights(scene, lighting.lights);
     return;
   }
 
@@ -98,6 +200,7 @@ function addLighting(scene: Scene, lightingInput: ParsedLightingOptions): void {
   const rimPosition = lighting.rimPosition ?? [-2, 5, -6];
   rim.position.set(rimPosition[0], rimPosition[1], rimPosition[2]);
   scene.add(rim);
+  addCustomLights(scene, lighting.lights);
 }
 
 function resolveCamera(
@@ -168,7 +271,6 @@ export async function renderGltf(input: RenderGltfOptions): Promise<RenderGltfRe
     width: options.width,
     height: options.height,
     ...(options.dawnFlags ? { dawnFlags: options.dawnFlags } : {}),
-    ...(options.powerPreference ? { powerPreference: options.powerPreference } : {}),
   });
   const rendererHandle = renderer.unsafeGetWebGpuRenderer();
   const inspection = await inspectGltfAsset(options.path);

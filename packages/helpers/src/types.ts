@@ -6,6 +6,43 @@ import type {
 
 export type GltfLightingPreset = "studio" | "flat" | "none";
 
+export type RenderGltfLightColor = string | number;
+
+export interface RenderGltfAmbientLight {
+  type: "ambient";
+  color?: RenderGltfLightColor;
+  intensity?: number;
+}
+
+export interface RenderGltfDirectionalLight {
+  type: "directional";
+  color?: RenderGltfLightColor;
+  intensity?: number;
+  position: [number, number, number];
+}
+
+export interface RenderGltfHemisphereLight {
+  type: "hemisphere";
+  skyColor?: RenderGltfLightColor;
+  groundColor?: RenderGltfLightColor;
+  intensity?: number;
+}
+
+export interface RenderGltfPointLight {
+  type: "point";
+  color?: RenderGltfLightColor;
+  intensity?: number;
+  position: [number, number, number];
+  distance?: number;
+  decay?: number;
+}
+
+export type RenderGltfSceneLight =
+  | RenderGltfAmbientLight
+  | RenderGltfDirectionalLight
+  | RenderGltfHemisphereLight
+  | RenderGltfPointLight;
+
 export interface RenderGltfLightingOptions {
   preset?: GltfLightingPreset;
   ambientIntensity?: number;
@@ -15,6 +52,7 @@ export interface RenderGltfLightingOptions {
   keyPosition?: [number, number, number];
   fillPosition?: [number, number, number];
   rimPosition?: [number, number, number];
+  lights?: RenderGltfSceneLight[];
 }
 
 export interface RenderGltfCameraOptions {
@@ -24,7 +62,7 @@ export interface RenderGltfCameraOptions {
   useEmbeddedCamera?: boolean;
 }
 
-export interface RenderGltfOptions extends RendererRuntimeOptions {
+export interface RenderGltfOptions extends Omit<RendererRuntimeOptions, "powerPreference"> {
   path: string;
   width: number;
   height: number;

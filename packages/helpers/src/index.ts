@@ -9,13 +9,20 @@ export {
   renderGltfCameraOptionsSchema,
   renderGltfLightingOptionsSchema,
   renderGltfOptionsSchema,
+  renderGltfSceneLightSchema,
 } from "./render-gltf-schema.js";
 export type {
   GltfAssetSummary,
   GltfLightingPreset,
   LoadedGltfDocument,
+  RenderGltfAmbientLight,
   RenderGltfCameraOptions,
+  RenderGltfDirectionalLight,
+  RenderGltfHemisphereLight,
+  RenderGltfLightColor,
   RenderGltfLightingOptions,
   RenderGltfOptions,
+  RenderGltfPointLight,
   RenderGltfResult,
+  RenderGltfSceneLight,
 } from "./types.js";

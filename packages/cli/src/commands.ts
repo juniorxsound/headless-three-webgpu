@@ -4,14 +4,15 @@ import type { OutputFormat, RendererBenchmarkOptions } from "@rendergl/three-hea
 import {
   gltfLightingPresetSchema,
   renderGltfOptionsSchema,
+  renderGltfSceneLightSchema,
   type RenderGltfCameraOptions,
   type RenderGltfLightingOptions,
   type RenderGltfOptions,
+  type RenderGltfSceneLight,
 } from "@rendergl/three-headless-helpers";
 import { z } from "zod";
 
 const outputFormatSchema = z.enum(["png", "webp"]);
-const powerPreferenceSchema = z.enum(["low-power", "high-performance"]);
 const vector3ArgumentSchema = z.string().transform((value, context) => {
   const parts = value
     .split(",")
@@ -28,6 +29,56 @@ const vector3ArgumentSchema = z.string().transform((value, context) => {
 
   return [parts[0]!, parts[1]!, parts[2]!] as [number, number, number];
 });
+const lightArgumentSchema = z.string().transform((value, context) => {
+  try {
+    return renderGltfSceneLightSchema.parse(JSON.parse(value));
+  } catch (error) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message:
+        error instanceof Error
+          ? `Expected --light to be valid JSON matching a scene light definition: ${error.message}`
+          : "Expected --light to be valid JSON matching a scene light definition",
+    });
+    return z.NEVER;
+  }
+});
+
+function normalizeSceneLight(
+  light: z.infer<typeof renderGltfSceneLightSchema>,
+): RenderGltfSceneLight {
+  switch (light.type) {
+    case "ambient":
+      return {
+        type: "ambient",
+        ...(light.color !== undefined ? { color: light.color } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+      };
+    case "directional":
+      return {
+        type: "directional",
+        position: light.position,
+        ...(light.color !== undefined ? { color: light.color } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+      };
+    case "hemisphere":
+      return {
+        type: "hemisphere",
+        ...(light.skyColor !== undefined ? { skyColor: light.skyColor } : {}),
+        ...(light.groundColor !== undefined ? { groundColor: light.groundColor } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+      };
+    case "point":
+      return {
+        type: "point",
+        position: light.position,
+        ...(light.color !== undefined ? { color: light.color } : {}),
+        ...(light.intensity !== undefined ? { intensity: light.intensity } : {}),
+        ...(light.distance !== undefined ? { distance: light.distance } : {}),
+        ...(light.decay !== undefined ? { decay: light.decay } : {}),
+      };
+  }
+}
 
 const renderCommandOptionsSchema = z.object({
   width: z.coerce.number().int().positive(),
@@ -43,11 +94,11 @@ const renderCommandOptionsSchema = z.object({
   keyPosition: vector3ArgumentSchema.optional(),
   fillPosition: vector3ArgumentSchema.optional(),
   rimPosition: vector3ArgumentSchema.optional(),
+  light: z.array(lightArgumentSchema).default([]),
   cameraPosition: vector3ArgumentSchema.optional(),
   cameraTarget: vector3ArgumentSchema.optional(),
   fov: z.coerce.number().finite().positive().optional(),
   dawnFlag: z.array(z.string().min(1)).default([]),
-  powerPreference: powerPreferenceSchema.optional(),
 });
 
 const benchCommandOptionsSchema = z.object({
@@ -56,7 +107,6 @@ const benchCommandOptionsSchema = z.object({
   iterations: z.coerce.number().int().positive(),
   format: outputFormatSchema.optional(),
   dawnFlag: z.array(z.string().min(1)).default([]),
-  powerPreference: powerPreferenceSchema.optional(),
 });
 
 interface RenderCommandResult {
@@ -84,6 +134,10 @@ export function parseVector3(value: string | undefined): [number, number, number
   }
 
   return vector3ArgumentSchema.parse(value);
+}
+
+export function parseLight(value: string): RenderGltfSceneLight {
+  return normalizeSceneLight(lightArgumentSchema.parse(value));
 }
 
 export function resolveFormat(format: string | undefined, outputPath?: string): OutputFormat {
@@ -130,6 +184,9 @@ function buildLightingOptions(
   assignDefined(lighting, "keyPosition", options.keyPosition);
   assignDefined(lighting, "fillPosition", options.fillPosition);
   assignDefined(lighting, "rimPosition", options.rimPosition);
+  if (options.light.length > 0) {
+    lighting.lights = options.light.map(normalizeSceneLight);
+  }
   return finalizeOptionalObject<RenderGltfLightingOptions>(lighting);
 }
 
@@ -152,7 +209,6 @@ function buildRenderRequest(
   if (options.dawnFlag.length > 0) {
     render.dawnFlags = options.dawnFlag;
   }
-  assignDefined(render, "powerPreference", options.powerPreference);
   renderGltfOptionsSchema.parse(render);
   return render as RenderGltfOptions;
 }
@@ -178,6 +234,5 @@ export function buildBenchOptions(options: unknown): RendererBenchmarkOptions {
   if (parsed.dawnFlag.length > 0) {
     benchmarkOptions.dawnFlags = parsed.dawnFlag;
   }
-  assignDefined(benchmarkOptions, "powerPreference", parsed.powerPreference);
   return benchmarkOptions as RendererBenchmarkOptions;
 }

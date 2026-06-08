@@ -100,7 +100,17 @@ const result = await renderGltf({
   width: 1440,
   height: 900,
   format: "webp",
-  lighting: "studio",
+  lighting: {
+    preset: "studio",
+    lights: [
+      {
+        type: "point",
+        position: [2, 3, 4],
+        intensity: 0.8,
+        color: "#ffd39b",
+      },
+    ],
+  },
 });
 ```
 
@@ -110,20 +120,7 @@ The CLI intentionally wraps the packages above instead of re-implementing render
 
 ```bash
 rgl render ./model.glb --output ./frame.png
+rgl render ./model.glb --light '{"type":"point","position":[2,3,4],"intensity":0.8,"color":"#ffd39b"}'
 rgl inspect ./model.glb
 rgl bench --iterations 20 --format png
 ```
-
-## CPU-only and diagnostics
-
-CPU-oriented guidance and benchmark tips live in:
-
-- [docs/getting-started.md](/Users/juniorxsound/Dev/headless-three-webgpu/docs/getting-started.md)
-- [docs/cpu-only.md](/Users/juniorxsound/Dev/headless-three-webgpu/docs/cpu-only.md)
-- [docs/architecture.md](/Users/juniorxsound/Dev/headless-three-webgpu/docs/architecture.md)
-
-The runtime exposes adapter and Dawn flag diagnostics so render jobs can log the exact environment they ran under.
-
-## Status
-
-This first pass focuses on a clean public API, package boundaries, the GLTF helper path, the CLI, and practical extraction of the renderer runtime. Advanced hosted-product behavior from render.gl is intentionally not part of this repository, and broader example coverage can land in a follow-up pass.
