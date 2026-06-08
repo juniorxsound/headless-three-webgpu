@@ -1,3 +1,17 @@
+const LINEAR_U8_TO_SRGB_U8 = buildLinearU8ToSrgbU8Lut();
+
+function buildLinearU8ToSrgbU8Lut(): Uint8Array {
+  const lut = new Uint8Array(256);
+
+  for (let index = 0; index < lut.length; index += 1) {
+    const linear = index / 255;
+    const srgb = linear <= 0.0031308 ? linear * 12.92 : 1.055 * Math.pow(linear, 1 / 2.4) - 0.055;
+    lut[index] = Math.max(0, Math.min(255, Math.round(srgb * 255)));
+  }
+
+  return lut;
+}
+
 export function alignWidthForWebGpuRgba8(width: number): number {
   return Math.max(64, Math.ceil(width / 64) * 64);
 }
@@ -66,4 +80,17 @@ export function rgbaReadbackBytesPerRow(width: number, bytesPerTexel = 4): numbe
 
 export function asUint8Bytes(view: ArrayBufferView): Uint8Array {
   return new Uint8Array(view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength));
+}
+
+export function convertLinearRgba8ToSrgb(source: Uint8Array): Uint8Array {
+  const output = new Uint8Array(source.length);
+
+  for (let index = 0; index < source.length; index += 4) {
+    output[index] = LINEAR_U8_TO_SRGB_U8[source[index]!]!;
+    output[index + 1] = LINEAR_U8_TO_SRGB_U8[source[index + 1]!]!;
+    output[index + 2] = LINEAR_U8_TO_SRGB_U8[source[index + 2]!]!;
+    output[index + 3] = source[index + 3]!;
+  }
+
+  return output;
 }
