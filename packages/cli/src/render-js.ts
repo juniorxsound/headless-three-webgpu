@@ -9,18 +9,18 @@ import {
 import type { Camera, Scene } from "three";
 import * as THREE from "three/webgpu";
 
-export interface JsSceneModuleContext {
+interface JsSceneModuleContext {
   THREE: typeof THREE;
   width: number;
   height: number;
 }
 
-export interface JsSceneModuleResult {
+interface JsSceneModuleResult {
   scene: Scene;
   camera: Camera;
 }
 
-export interface JsSceneRenderOptions {
+interface JsSceneRenderOptions {
   modulePath: string;
   width: number;
   height: number;
@@ -28,7 +28,7 @@ export interface JsSceneRenderOptions {
   dawnFlags?: string[];
 }
 
-export interface JsSceneRenderResult {
+interface JsSceneRenderResult {
   buffer: Uint8Array;
   diagnostics: HeadlessWebGPURendererDiagnostics;
   modulePath: string;

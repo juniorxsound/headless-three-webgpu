@@ -129,7 +129,7 @@ interface JsRenderCommandResult {
   width: number;
 }
 
-export type RenderExecutionPlan = GltfRenderCommandResult | JsRenderCommandResult;
+type RenderExecutionPlan = GltfRenderCommandResult | JsRenderCommandResult;
 
 function assignDefined<T extends object, K extends keyof T>(
   target: Partial<T>,
