@@ -105,8 +105,9 @@ jobs:
               } else {
                 try {
                   const result = JSON.parse(renderJson);
-                  const adapterLabel = result.diagnostics?.adapterInfo
-                    ? `${result.diagnostics.adapterInfo.vendor ?? "unknown"} / ${result.diagnostics.adapterInfo.architecture ?? "unknown"}`
+                  const adapterInfo = result.diagnostics?.runtime?.adapterInfo;
+                  const adapterLabel = adapterInfo
+                    ? `${adapterInfo.vendor ?? "unknown"} / ${adapterInfo.architecture ?? "unknown"}`
                     : "adapter unavailable";
                   lines.push(`**PASS** • ${adapterLabel}`);
                   if (result.outputPath) {
