@@ -17,7 +17,7 @@ npm install -D @rendergl/headless-three-webgpu-cli
 Or run it directly:
 
 ```bash
-npx rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
+npx --package @rendergl/headless-three-webgpu-cli rgl render ./model.glb --width 1280 --height 720 --output ./frame.png
 ```
 
 ## Render Images
