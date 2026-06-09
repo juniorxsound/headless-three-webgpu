@@ -40,6 +40,7 @@ jobs:
 
       - name: Run renderer E2E
         run: |
+          set -o pipefail
           docker run --rm \
             -v "$RUNNER_TEMP/e2e/model:/models:ro" \
             -v "$RUNNER_TEMP/e2e/out:/out" \
@@ -114,7 +115,8 @@ jobs:
                     lines.push(`Output: \`${result.outputPath}\``);
                   }
                 } catch (parseErr) {
-                  lines.push("**PASS** (output was not JSON)");
+                  lines.push("**FAIL**");
+                  lines.push("Failure: `Render output was not valid JSON.`");
                 }
               }
             } else {
