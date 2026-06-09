@@ -1,6 +1,6 @@
 # headless-three-webgpu
 
-Render images, videos and GIFs using headless three.js with WebGPU.
+Render images, videos and GIFs using headless three.js with WebGPU and Dawn.
 
 ![render cover image](https://i.imgur.com/UlEpFJy.gif)
 
@@ -8,13 +8,13 @@ Render images, videos and GIFs using headless three.js with WebGPU.
 
 ## What
 
-Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate and deploy. `headless-three-webgpu` renders Three.js scenes headlessly in Node.js. It levrages Three.js rendering capabilities and WebGPU through Dawn, so you get a real GPU pipeline without a browser, a canvas, or a display server. This is helpful if you want to render 3D images, videos and GIFs in a server, desktop or agent harness (we provide skills for this in the `.agents` folder).
+Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate and deploy. `headless-three-webgpu` renders Three.js scenes headlessly in Node.js. It levrages Three.js rendering capabilities and WebGPU through Dawn, so you get a real GPU pipeline without a browser, a canvas, or a display server. This is helpful if you want to render 3D images, videos and GIFs in a server, desktop or agent harness (there are skills for this in the `.agents` folder).
 
 ## Packages
 
-- `@rendergl/headless-three-webgpu`: core headless renderer runtime and API
-- `@rendergl/headless-three-webgpu-helpers`: GLTF loading, inspection, and convenience rendering helpers
-- `@rendergl/headless-three-webgpu-cli`: the `rgl` CLI
+- `@rendergl/headless-three-webgpu` - core headless renderer runtime and API
+- `@rendergl/headless-three-webgpu-helpers` - GLTF loading, inspection, and convenience rendering helpers
+- `@rendergl/headless-three-webgpu-cli` - the `rgl` CLI
 
 ## Install
 
@@ -226,3 +226,5 @@ pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render ./model.glb --
 - [opensource3dassets.com](https://www.opensource3dassets.com/) models used in the cover image
 - [three.js](https://threejs.org/) for making the 3D web as good as it is today
 - [Google Dawn](https://dawn.googlesource.com/dawn) WebGPU implementation
+- [@jscottsmith](https://github.com/jscottsmith) for contributions to render.gl
+- [@caseypugh](https://github.com/caseypugh) and [@jamiew](https://github.com/jamiew) for advising on render.gl
