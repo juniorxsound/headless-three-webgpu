@@ -1,0 +1,170 @@
+name: Renderer E2E
+
+on:
+  pull_request:
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  renderer-cpu:
+    name: CPU E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SAMPLE_MODEL_NAME: BoxVertexColors
+      SAMPLE_MODEL_FILE: BoxVertexColors.glb
+      SAMPLE_MODEL_URL: https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/c147d2fc0e075e9e04bf7add86880f940726d423/Models/BoxVertexColors/glTF-Binary/BoxVertexColors.glb
+      SAMPLE_CAMERA_POSITION: -3,3,-3
+      SAMPLE_CAMERA_TARGET: 0,0,0
+      BENCH_JSON_PATH: renderer-cpu-e2e.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build renderer E2E image
+        run: docker build --platform linux/amd64 --target e2e -t rgl-e2e .
+
+      - name: Inspect SwiftShader files in E2E image
+        run: |
+          docker run --rm --entrypoint /bin/sh rgl-e2e -lc 'ls -la /opt/swiftshader/lib && echo "VK_ICD_FILENAMES=$VK_ICD_FILENAMES" && echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" && echo "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR"'
+
+      - name: Download sample model
+        run: |
+          mkdir -p "$RUNNER_TEMP/e2e/model" "$RUNNER_TEMP/e2e/out"
+          curl -fsSL "$SAMPLE_MODEL_URL" -o "$RUNNER_TEMP/e2e/model/$SAMPLE_MODEL_FILE"
+
+      - name: Run renderer E2E
+        run: |
+          set -o pipefail
+          docker run --rm \
+            -v "$RUNNER_TEMP/e2e/model:/models:ro" \
+            -v "$RUNNER_TEMP/e2e/out:/out" \
+            rgl-e2e \
+            render "/models/$SAMPLE_MODEL_FILE" \
+            --output "/out/$SAMPLE_MODEL_NAME-preview.png" \
+            --width 512 \
+            --height 512 \
+            --camera-position "$SAMPLE_CAMERA_POSITION" \
+            --camera-target "$SAMPLE_CAMERA_TARGET" | tee "$BENCH_JSON_PATH"
+
+      - name: Check preview artifact presence
+        if: always()
+        id: preview_check
+        run: |
+          if [ -f "$RUNNER_TEMP/e2e/out/$SAMPLE_MODEL_NAME-preview.png" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check render JSON presence
+        if: always()
+        id: render_json_check
+        run: |
+          if [ -s "$BENCH_JSON_PATH" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload render preview artifact
+        if: always() && steps.preview_check.outputs.exists == 'true'
+        id: upload_preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: renderer-cpu-e2e-preview
+          path: ${{ runner.temp }}/e2e/out/${{ env.SAMPLE_MODEL_NAME }}-preview.png
+
+      - name: Comment on pull request
+        if: always() && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          RENDER_JSON_EXISTS: ${{ steps.render_json_check.outputs.exists }}
+          PREVIEW_EXISTS: ${{ steps.preview_check.outputs.exists }}
+          PREVIEW_ARTIFACT_URL: ${{ steps.upload_preview.outputs.artifact-url }}
+        with:
+          script: |
+            const fs = require("fs");
+
+            const marker = "<!-- renderer-cpu-e2e -->";
+            let renderJson = null;
+            const lines = [
+              marker,
+              "## E2E: Renderer CPU",
+            ];
+
+            if (process.env.RENDER_JSON_EXISTS === "true") {
+              renderJson = fs.readFileSync(process.env.BENCH_JSON_PATH, "utf8");
+              if (!renderJson.trim()) {
+                lines.push("**FAIL**");
+                lines.push("Failure: `Render output was empty.`");
+              } else {
+                try {
+                  const result = JSON.parse(renderJson);
+                  const adapterInfo = result.diagnostics?.runtime?.adapterInfo;
+                  const adapterLabel = adapterInfo
+                    ? `${adapterInfo.vendor ?? "unknown"} / ${adapterInfo.architecture ?? "unknown"}`
+                    : "adapter unavailable";
+                  lines.push(`**PASS** • ${adapterLabel}`);
+                  if (result.outputPath) {
+                    lines.push(`Output: \`${result.outputPath}\``);
+                  }
+                } catch (parseErr) {
+                  lines.push("**FAIL**");
+                  lines.push("Failure: `Render output was not valid JSON.`");
+                }
+              }
+            } else {
+              lines.push("**FAIL**");
+              lines.push("Failure: `Render output was not produced. See workflow logs for the failing step.`");
+            }
+
+            if (process.env.PREVIEW_EXISTS === "true" && process.env.PREVIEW_ARTIFACT_URL) {
+              lines.push("");
+              lines.push(`[Preview PNG artifact](${process.env.PREVIEW_ARTIFACT_URL})`);
+            }
+
+            if (renderJson) {
+              lines.push("");
+              lines.push("<details>");
+              lines.push("<summary>Captured render JSON</summary>");
+              lines.push("");
+              lines.push("```json");
+              lines.push(renderJson);
+              lines.push("```");
+              lines.push("</details>");
+            }
+
+            const body = lines.join("\n");
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find((comment) =>
+              comment.user?.type === "Bot" && typeof comment.body === "string" && comment.body.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }
