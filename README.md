@@ -8,7 +8,7 @@ Render images, videos and GIFs using headless three.js with WebGPU and Dawn.
 
 ## What
 
-Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate and deploy. `headless-three-webgpu` renders Three.js scenes headlessly in Node.js. It levrages Three.js rendering capabilities and WebGPU through Dawn, so you get a real GPU pipeline without a browser, a canvas, or a display server. This is helpful if you want to render 3D images, videos and GIFs in a server, desktop or agent harness (there are skills for this in the `.agents` folder).
+Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate and deploy. `headless-three-webgpu` renders Three.js scenes headlessly in Node.js. It leverages Three.js rendering capabilities and WebGPU through Dawn, so you get a real GPU pipeline without a browser, a canvas, or a display server. This is helpful if you want to render 3D images, videos and GIFs in a server, desktop or agent harness (there are skills for this in the `.agents` folder).
 
 ## Packages
 
