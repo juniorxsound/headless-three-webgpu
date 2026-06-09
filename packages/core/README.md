@@ -78,6 +78,17 @@ The main exports are:
 
 The renderer can output `png` and `webp` buffers.
 
+## Agent Instructions
+
+This package ships versioned agent instructions for coding agents:
+
+```txt
+node_modules/@rendergl/headless-three-webgpu/agent/AGENTS.md
+node_modules/@rendergl/headless-three-webgpu/agent/skills/rgl-core/SKILL.md
+```
+
+Point your agent there when you want it to use the installed package version as the source of truth.
+
 ## Related Packages
 
 - `@rendergl/headless-three-webgpu-helpers` - GLTF loading, inspection, environment maps, lighting presets, and convenience rendering
