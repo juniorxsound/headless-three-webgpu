@@ -16,6 +16,18 @@ Headless browser rendering can be heavy, slow to bootstrap, or awkward to integr
 - `@rendergl/headless-three-webgpu-helpers` - GLTF loading, inspection, and convenience rendering helpers
 - `@rendergl/headless-three-webgpu-cli` - the `rgl` CLI
 
+## Agent Skills
+
+This repo includes agent skills in `.agents/skills` for working on the monorepo itself.
+
+The npm packages also ship versioned agent instructions under `agent/` so users can point their coding agent at the package they actually installed:
+
+- `node_modules/@rendergl/headless-three-webgpu/agent/AGENTS.md`
+- `node_modules/@rendergl/headless-three-webgpu-helpers/agent/AGENTS.md`
+- `node_modules/@rendergl/headless-three-webgpu-cli/agent/AGENTS.md`
+
+That keeps package usage guidance tied to the installed version instead of whatever a model remembers. The package-local `AGENTS.md` files point to the relevant `SKILL.md` files in the same package.
+
 ## Install
 
 > Make sure you have Node.js 24 or newer installed.

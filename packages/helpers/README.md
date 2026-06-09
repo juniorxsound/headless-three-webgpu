@@ -85,6 +85,17 @@ The main exports are:
 - `loadGltfFromFile()` - load a model from disk
 - `loadGltfDocument()` and `inlineGltfExternalResources()` - lower-level GLTF document helpers
 
+## Agent Instructions
+
+This package ships versioned agent instructions for coding agents:
+
+```txt
+node_modules/@rendergl/headless-three-webgpu-helpers/agent/AGENTS.md
+node_modules/@rendergl/headless-three-webgpu-helpers/agent/skills/rgl-gltf/SKILL.md
+```
+
+Point your agent there when you want it to use the installed package version as the source of truth.
+
 ## Related Packages
 
 - `@rendergl/headless-three-webgpu` - core headless renderer runtime and API

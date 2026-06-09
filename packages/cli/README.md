@@ -99,6 +99,17 @@ export function update(delta) {
 }
 ```
 
+## Agent Instructions
+
+This package ships versioned agent instructions for coding agents:
+
+```txt
+node_modules/@rendergl/headless-three-webgpu-cli/agent/AGENTS.md
+node_modules/@rendergl/headless-three-webgpu-cli/agent/skills/rgl-cli/SKILL.md
+```
+
+Point your agent there when you want it to use the installed package version as the source of truth.
+
 ## Related Packages
 
 - `@rendergl/headless-three-webgpu` - core headless renderer runtime and API
