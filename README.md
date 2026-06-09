@@ -223,7 +223,6 @@ pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render ./model.glb --
 
 ## Credits
 
-- [opensource3dassets.com](https://www.opensource3dassets.com/) models used in the cover image.
-- [three.js](https://threejs.org/) for the renderer.
+- [opensource3dassets.com](https://www.opensource3dassets.com/) models used in the cover image
+- [three.js](https://threejs.org/) for making the 3D web as good as it is today
 - [Google Dawn](https://dawn.googlesource.com/dawn) WebGPU implementation
-- [sharp](https://sharp.pixelplumbing.com/) for image processing
