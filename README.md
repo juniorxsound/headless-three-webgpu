@@ -2,7 +2,7 @@
 
 Render images, videos and GIFs using headless three.js with WebGPU.
 
-![render cover image](https://i.imgur.com/bM8Ctg0.gif)
+![render cover image](https://i.imgur.com/UlEpFJy.gif)
 
 > ⚠️ This is a part of the core rendering layer powering [render.gl](https://www.render.gl). It's an open-source, standalone tool and does not require any account or API key. That said, if you are looking for cloud-based 3D rendering with a lot more features on top, check out [render.gl](https://www.render.gl).
 
