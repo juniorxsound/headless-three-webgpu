@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish
+        # Tokenless publish via npm Trusted Publishing (OIDC): the `id-token: write`
+        # permission lets pnpm exchange a GitHub OIDC token for a short-lived npm
+        # credential, so no NPM_TOKEN secret is needed. Requires a Trusted Publisher
+        # to be configured for each package on npmjs.com (pnpm >= 11.5 handles OIDC).
+        #
+        # -r publishes every non-private workspace package in dependency order and
+        # rewrites `workspace:*` ranges to real versions. Already-published versions
+        # are skipped, so re-running a tag is safe. Provenance is automatic with OIDC.
+        run: pnpm -r publish --access public --no-git-checks

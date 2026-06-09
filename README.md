@@ -1,14 +1,14 @@
 # headless-three-webgpu
 
-"<Project Image Goes Here>"
+Render images, videos and GIFs using headless three.js with WebGPU.
+
+![render cover image](https://i.imgur.com/bM8Ctg0.gif)
+
+> ⚠️ This is a part of the core rendering layer powering [render.gl](https://www.render.gl). It's an open-source, standalone tool and does not require any account or API key. That said, if you are looking for cloud-based 3D rendering with a lot more features on top, check out [render.gl](https://www.render.gl).
 
 ## What
 
-Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate and deploy.
-
-`headless-three-webgpu` renders Three.js scenes headlessly in Node.js. It levrages Three.js rendering capabilities and WebGPU through Dawn, so you get a real GPU pipeline without a browser, a canvas, or a display server.
-
-> This is the core rendering layer powering [render.gl](https://www.render.gl). Its published packages use the `@rendergl/*` scope and stay intentionally scoped as a developer-facing engine and toolkit rather than a hosted product SDK. If you want cloud-based rendering with a lot more features on top, check out [render.gl](https://www.render.gl) (please).
+Headless browser rendering can be heavy, slow to bootstrap, or awkward to integrate and deploy. `headless-three-webgpu` renders Three.js scenes headlessly in Node.js. It levrages Three.js rendering capabilities and WebGPU through Dawn, so you get a real GPU pipeline without a browser, a canvas, or a display server. This is helpful if you want to render 3D images, videos and GIFs in a server, desktop or agent harness (we provide skills for this in the `.agents` folder).
 
 ## Packages
 
@@ -16,15 +16,9 @@ Headless browser rendering can be heavy, slow to bootstrap, or awkward to integr
 - `@rendergl/headless-three-webgpu-helpers`: GLTF loading, inspection, and convenience rendering helpers
 - `@rendergl/headless-three-webgpu-cli`: the `rgl` CLI
 
-## Requirements
-
-- Node 24 or newer
-- a machine Dawn can reach a GPU on: Metal on macOS, Vulkan on Linux, native on Windows
-- no manual Dawn setup; the native WebGPU binaries install automatically with the core package
-
-For CPU-only environments (CI, containers without a GPU), run Dawn against SwiftShader. See the runtime notes in the skills under `.agents/skills`.
-
 ## Install
+
+> Make sure you have Node.js 24 or newer installed.
 
 Install what you need from npm.
 
@@ -178,6 +172,8 @@ rgl video ./model.glb --output ./loop.gif --camera turntable --fps 15 --duration
 
 GLTF/GLB renders support the `turntable`, `dolly-in`, and `dolly-out` camera presets plus all the lighting and environment flags from `rgl render`. For `--js` scene modules there is no preset: drive the camera and everything else from the module's `update(delta)` hook, which runs once per frame with `delta = 1 / fps`.
 
+Tune the encode with `--fps`, `--duration`, `--crf` (lower is higher quality), `--codec`, and `--no-loop` (GIF). Because `.mp4`/`.mov`/`.webm` encode to `yuv420p`, `--width` and `--height` must be even for those containers (GIF allows odd sizes).
+
 ```bash
 rgl video --js ./scene.mjs --output ./scene.mp4 --fps 24 --duration 5
 ```
@@ -224,3 +220,10 @@ From inside the workspace, run the CLI against the local build:
 ```bash
 pnpm --filter @rendergl/headless-three-webgpu-cli exec rgl render ./model.glb --output ./frame.png
 ```
+
+## Credits
+
+- [opensource3dassets.com](https://www.opensource3dassets.com/) models used in the cover image.
+- [three.js](https://threejs.org/) for the renderer.
+- [Google Dawn](https://dawn.googlesource.com/dawn) WebGPU implementation
+- [sharp](https://sharp.pixelplumbing.com/) for image processing
