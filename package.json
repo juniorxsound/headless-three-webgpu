@@ -11,6 +11,7 @@
     "prepare": "lefthook install || true"
   },
   "devDependencies": {
+    "@rendergl/headless-three-webgpu-cli": "workspace:*",
     "@types/node": "^24.0.1",
     "@types/three": "^0.184.0",
     "@webgpu/types": "^0.1.63",
