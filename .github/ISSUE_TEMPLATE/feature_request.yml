@@ -32,9 +32,9 @@ body:
       label: Related package
       multiple: true
       options:
-        - "@rendergl/core"
-        - "@rendergl/helpers"
-        - "rgl (CLI)"
+        - "@rendergl/headless-three-webgpu"
+        - "@rendergl/headless-three-webgpu-helpers"
+        - "@rendergl/headless-three-webgpu-cli (rgl)"
         - "New package"
     validations:
       required: false

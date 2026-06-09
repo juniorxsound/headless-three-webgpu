@@ -27,7 +27,7 @@ body:
       description: Please provide minimal code to reproduce the issue.
       value: |
         ```ts
-        import { createRenderer } from '@rendergl/core';
+        import { createRendererRuntime, createHeadlessWebGPURenderer } from "@rendergl/headless-three-webgpu";
 
         // code goes here
         ```
@@ -61,9 +61,9 @@ body:
       label: Affected package
       multiple: true
       options:
-        - "@rendergl/core"
-        - "@rendergl/helpers"
-        - "rgl (CLI)"
+        - "@rendergl/headless-three-webgpu"
+        - "@rendergl/headless-three-webgpu-helpers"
+        - "@rendergl/headless-three-webgpu-cli (rgl)"
     validations:
       required: true
   - type: dropdown
