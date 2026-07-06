@@ -1,14 +1,21 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { basename, dirname, extname, join } from "node:path";
 
 import { Command } from "commander";
-import { runRendererBenchmark } from "@rendergl/headless-three-webgpu";
+import { encodeImageToBuffer, runRendererBenchmark } from "@rendergl/headless-three-webgpu";
 import { inspectGltfAsset, renderGltf } from "@rendergl/headless-three-webgpu-helpers";
+import {
+  loadSceneDocumentFile,
+  renderSceneDocumentPasses,
+} from "@rendergl/headless-three-webgpu-scene";
 
 import { buildBenchOptions, buildRenderPlan, buildVideoPlan } from "./commands.js";
+import { resolveFormat } from "./commands.js";
 import { ffmpegInstallHint, isFfmpegAvailable } from "./encoder.js";
 import { renderSceneModule } from "./render-js.js";
+import { buildSceneRenderPlan, buildSceneVideoPlan } from "./scene-commands.js";
+import { runSceneVideo } from "./scene-video.js";
 import { runVideo } from "./video.js";
 
 const program = new Command();
@@ -20,6 +27,33 @@ function collect(value: string, previous: string[]): string[] {
   return previous;
 }
 
+function resolveScenePassOutputPath(outputPath: string, passId: string, format: string): string {
+  const extension = extname(outputPath);
+  const baseName = basename(outputPath, extension || undefined);
+  const directory = dirname(outputPath);
+  const finalExtension = extension || `.${format}`;
+  return join(
+    directory,
+    passId === "color" ? `${baseName}${finalExtension}` : `${baseName}.${passId}${finalExtension}`,
+  );
+}
+
+function removeDefaultedSceneVideoOptions(
+  options: Record<string, unknown>,
+  command: Command,
+): Record<string, unknown> {
+  const normalized = { ...options };
+
+  if (command.getOptionValueSource("fps") === "default") {
+    delete normalized.fps;
+  }
+  if (command.getOptionValueSource("duration") === "default") {
+    delete normalized.duration;
+  }
+
+  return normalized;
+}
+
 /**
  * Options shared by `render` and `video`: scene sizing, lighting, and the
  * environment map. Each command layers its own output and camera options on top.
@@ -29,6 +63,7 @@ function addSharedSceneOptions(command: Command): Command {
     .option("--width <number>", "Output width", "1024")
     .option("--height <number>", "Output height", "1024")
     .option("--js <path>", "Path to a JavaScript scene module")
+    .option("--json <path>", "Path to a .rgl.json scene document")
     .option("--background <color>", "Background color, e.g. #111111")
     .option("--lighting <preset>", "Lighting preset: studio, flat, none", "studio")
     .option("--ambient-intensity <number>", "Ambient light intensity")
@@ -58,7 +93,62 @@ addSharedSceneOptions(program.command("render"))
   .option("--format <format>", "Output format: png or webp")
   .option("--camera-position <xyz>", "Camera position as x,y,z")
   .option("--camera-target <xyz>", "Camera target as x,y,z")
+  .option("--view <id>", "Scene view to render when using --json")
+  .option("--sequence <id>", "Scene sequence to evaluate when using --json")
+  .option("--time <seconds>", "Scene time in seconds when using --json", "0")
   .action(async (file, options) => {
+    if (options.json) {
+      if (file || options.js) {
+        throw new Error(
+          "Use either a GLTF/GLB <file>, --js <path>, or --json <path>, not more than one",
+        );
+      }
+
+      const loaded = await loadSceneDocumentFile(options.json);
+      const plan = buildSceneRenderPlan(loaded.path, options);
+      const result = await renderSceneDocumentPasses({
+        document: loaded.document,
+        scenePath: loaded.path,
+        time: plan.time,
+        ...(plan.viewId ? { viewId: plan.viewId } : {}),
+        ...(plan.sequenceId ? { sequenceId: plan.sequenceId } : {}),
+        ...(plan.width !== undefined ? { width: plan.width } : {}),
+        ...(plan.height !== undefined ? { height: plan.height } : {}),
+        ...(plan.dawnFlags ? { dawnFlags: plan.dawnFlags } : {}),
+      });
+
+      await mkdir(dirname(plan.outputPath), { recursive: true });
+      const format = resolveFormat(undefined, plan.outputPath);
+      const writtenPasses: Array<{ passId: string; outputPath: string }> = [];
+
+      for (const [passId, buffer] of Object.entries(result.buffers)) {
+        const outputPath = resolveScenePassOutputPath(plan.outputPath, passId, format);
+        const encoded = await encodeImageToBuffer({
+          pixels: buffer,
+          width: result.output.width,
+          height: result.output.height,
+          format,
+        });
+        await writeFile(outputPath, encoded);
+        writtenPasses.push({ passId, outputPath });
+      }
+
+      console.log(
+        JSON.stringify(
+          {
+            outputPath: plan.outputPath,
+            passes: writtenPasses,
+            viewId: result.viewId,
+            output: result.output,
+            diagnostics: result.diagnostics,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
     const plan = buildRenderPlan(file, options);
 
     if (plan.kind === "js") {
@@ -112,10 +202,35 @@ addSharedSceneOptions(program.command("video"))
   .option("--crf <number>", "Encoder quality (lower is higher quality)")
   .option("--codec <codec>", "Override the video codec, e.g. libx264 or libvpx-vp9")
   .option("--no-loop", "Disable infinite looping for GIF output")
-  .action(async (file, options) => {
+  .option("--view <id>", "Scene view to render when using --json")
+  .option("--sequence <id>", "Scene sequence to render when using --json")
+  .action(async (file, options, command) => {
     if (!(await isFfmpegAvailable())) {
       console.error(ffmpegInstallHint());
       process.exitCode = 1;
+      return;
+    }
+
+    if (options.json) {
+      if (file || options.js) {
+        throw new Error(
+          "Use either a GLTF/GLB <file>, --js <path>, or --json <path>, not more than one",
+        );
+      }
+
+      const loaded = await loadSceneDocumentFile(options.json);
+      const plan = buildSceneVideoPlan(
+        loaded.path,
+        loaded.document,
+        removeDefaultedSceneVideoOptions(options, command),
+      );
+      const result = await runSceneVideo({
+        scenePath: loaded.path,
+        document: loaded.document,
+        plan,
+      });
+
+      console.log(JSON.stringify(result, null, 2));
       return;
     }
 

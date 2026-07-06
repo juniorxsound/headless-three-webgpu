@@ -9,3 +9,5 @@ tmp
 examples/**/output
 examples/**/.cache
 output
+renders
+archive

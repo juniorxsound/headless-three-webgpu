@@ -5,6 +5,7 @@ import {
   RenderTarget,
   RGBAFormat,
   SRGBColorSpace,
+  UnsignedByteType,
   type Camera,
   type Scene,
 } from "three";
@@ -18,6 +19,7 @@ import {
   convertLinearRgba8ToSrgb,
   deflateRgba8UnormRows,
   rgbaReadbackBytesPerRow,
+  toLinearRgba8Buffer,
   toSrgbRgba8Buffer,
 } from "./readback.js";
 import { createRendererRuntime } from "./runtime.js";
@@ -26,15 +28,27 @@ import type {
   CreateHeadlessWebGPURendererOptions,
   HeadlessWebGPURenderer,
   HeadlessWebGPURendererDiagnostics,
+  ReadbackFormat,
+  ReadPixelsOptions,
+  RenderPipelineLike,
   RendererRuntime,
 } from "./types.js";
 
-function createReadbackTarget(width: number, height: number): RenderTarget {
+function resolveReadbackTextureType(format: ReadbackFormat) {
+  switch (format) {
+    case "rgba8unorm":
+      return UnsignedByteType;
+    case "rgba16float":
+      return HalfFloatType;
+  }
+}
+
+function createReadbackTarget(width: number, height: number, format: ReadbackFormat): RenderTarget {
   const target = new RenderTarget(width, height, {
     depthBuffer: true,
     stencilBuffer: false,
     format: RGBAFormat,
-    type: HalfFloatType,
+    type: resolveReadbackTextureType(format),
   });
   target.texture.generateMipmaps = false;
   return target;
@@ -45,6 +59,7 @@ export async function createHeadlessWebGPURenderer(
 ): Promise<HeadlessWebGPURenderer> {
   const alpha = options.alpha ?? true;
   const antialias = options.antialias ?? true;
+  const readbackFormat = options.readbackFormat ?? "rgba8unorm";
   let width = options.width ?? 1024;
   let height = options.height ?? 1024;
   const runtime = options.runtime ?? (await createRendererRuntime(options));
@@ -66,7 +81,7 @@ export async function createHeadlessWebGPURenderer(
   renderer.setSize(width, height, false);
   renderer.setClearColor(options.clearColor ?? new Color(0x000000), options.clearAlpha ?? 0);
 
-  let target = createReadbackTarget(width, height);
+  let target = createReadbackTarget(width, height, readbackFormat);
   let disposed = false;
 
   const ensureActive = (): void => {
@@ -82,14 +97,18 @@ export async function createHeadlessWebGPURenderer(
     canvas.height = nextHeight;
     renderer.setSize(nextWidth, nextHeight, false);
     target.dispose();
-    target = createReadbackTarget(nextWidth, nextHeight);
+    target = createReadbackTarget(nextWidth, nextHeight, readbackFormat);
   };
 
-  const readPixels = async (): Promise<Uint8Array> => {
+  const readPixels = async (options: ReadPixelsOptions = {}): Promise<Uint8Array> => {
     ensureActive();
     const view = await renderer.readRenderTargetPixelsAsync(target, 0, 0, width, height);
+    const colorSpace = options.colorSpace ?? "srgb";
+
     if (view instanceof Uint16Array || view instanceof Float32Array) {
-      return toSrgbRgba8Buffer(asHdrPixels(view), width, height);
+      return colorSpace === "linear"
+        ? toLinearRgba8Buffer(asHdrPixels(view), width, height)
+        : toSrgbRgba8Buffer(asHdrPixels(view), width, height);
     }
 
     const bytes = asUint8Bytes(view);
@@ -104,7 +123,7 @@ export async function createHeadlessWebGPURenderer(
             bytesPerRow || rgbaReadbackBytesPerRow(width),
           );
 
-    return convertLinearRgba8ToSrgb(packed);
+    return colorSpace === "linear" ? packed : convertLinearRgba8ToSrgb(packed);
   };
 
   return {
@@ -114,14 +133,20 @@ export async function createHeadlessWebGPURenderer(
       renderer.render(scene, camera);
       renderer.setRenderTarget(null);
     },
+    async renderPipeline(renderPipeline: RenderPipelineLike) {
+      ensureActive();
+      renderer.setRenderTarget(target);
+      renderPipeline.render();
+      renderer.setRenderTarget(null);
+    },
     setSize(nextWidth: number, nextHeight: number) {
       ensureActive();
       resizeTarget(nextWidth, nextHeight);
     },
     readPixels,
-    async toBuffer(format) {
+    async toBuffer(format, options) {
       ensureActive();
-      const pixels = await readPixels();
+      const pixels = await readPixels(options);
       return encodeImageToBuffer({
         pixels,
         width,
@@ -137,6 +162,7 @@ export async function createHeadlessWebGPURenderer(
       return {
         width,
         height,
+        readbackFormat,
         alpha,
         antialias,
         runtime: runtime.diagnostics,

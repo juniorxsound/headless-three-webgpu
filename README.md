@@ -165,9 +165,11 @@ The CLI intentionally wraps the packages above instead of re-implementing render
 ```bash
 rgl render ./model.glb --output ./frame.png
 rgl render --js ./scene.mjs --output ./frame.png
+rgl render --json ./scene.rgl.json --time 2.5 --output ./frame.png
 rgl render ./model.glb --light '{"type":"point","position":[2,3,4],"intensity":0.8,"color":"#ffd39b"}'
 rgl render ./model.glb --env-map ./studio.hdr --env-background --env-intensity 1.2
 rgl video ./model.glb --output ./turntable.mp4 --camera turntable --duration 6 --fps 30
+rgl video --json ./scene.rgl.json --output ./reference.mp4
 rgl inspect ./model.glb
 rgl bench --iterations 20 --format png
 ```

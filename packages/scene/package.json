@@ -1,19 +1,15 @@
 {
-  "name": "@rendergl/headless-three-webgpu-cli",
-  "version": "0.2.0",
-  "description": "CLI for @rendergl/headless-three-webgpu",
+  "name": "@rendergl/headless-three-webgpu-scene",
+  "version": "0.1.0",
+  "description": "Local scene IR, evaluation, and rendering helpers for rgl",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/juniorxsound/headless-three-webgpu.git",
-    "directory": "packages/cli"
-  },
-  "bin": {
-    "rgl": "./dist/index.js"
+    "directory": "packages/scene"
   },
   "files": [
-    "dist",
-    "agent"
+    "dist"
   ],
   "type": "module",
   "main": "./dist/index.js",
@@ -36,8 +32,6 @@
   "dependencies": {
     "@rendergl/headless-three-webgpu": "workspace:*",
     "@rendergl/headless-three-webgpu-helpers": "workspace:*",
-    "@rendergl/headless-three-webgpu-scene": "workspace:*",
-    "commander": "^13.1.0",
     "three": "^0.184.0",
     "zod": "^4.1.5"
   }

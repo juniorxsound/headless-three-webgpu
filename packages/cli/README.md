@@ -41,6 +41,12 @@ rgl render ./model.glb --light '{"type":"point","position":[2,3,4],"intensity":0
 rgl render ./model.glb --env-map ./studio.hdr --env-background --env-intensity 1.2
 ```
 
+Render a scene document:
+
+```bash
+rgl render --json ./scene.rgl.json --time 2.5 --output ./frame.png
+```
+
 ## Render Video
 
 `rgl video` renders an animated clip and requires `ffmpeg` on your `PATH`, or set `RGL_FFMPEG_PATH`.
@@ -56,6 +62,12 @@ The output container is inferred from the file extension: `.mp4`, `.mov`, `.webm
 GLTF/GLB video renders support `turntable`, `dolly-in`, and `dolly-out` camera presets, plus the lighting and environment flags from `rgl render`. For `--js` scene modules, drive animation from the module's `update(delta)` hook.
 
 Because `.mp4`, `.mov`, and `.webm` encode to `yuv420p`, `--width` and `--height` must be even for those containers. GIF allows odd sizes.
+
+Render a scene document to video:
+
+```bash
+rgl video --json ./scene.rgl.json --output ./reference.mp4
+```
 
 ## Inspect
 

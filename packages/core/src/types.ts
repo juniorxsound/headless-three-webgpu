@@ -37,6 +37,7 @@ export interface CreateHeadlessWebGPURendererOptions extends RendererRuntimeOpti
   runtime?: RendererRuntime;
   width?: number;
   height?: number;
+  readbackFormat?: ReadbackFormat;
   alpha?: boolean;
   antialias?: boolean;
   clearColor?: string | number;
@@ -46,6 +47,7 @@ export interface CreateHeadlessWebGPURendererOptions extends RendererRuntimeOpti
 export interface HeadlessWebGPURendererDiagnostics {
   width: number;
   height: number;
+  readbackFormat: ReadbackFormat;
   alpha: boolean;
   antialias: boolean;
   runtime: RendererRuntimeDiagnostics;
@@ -53,9 +55,10 @@ export interface HeadlessWebGPURendererDiagnostics {
 
 export interface HeadlessWebGPURenderer {
   render(scene: Scene, camera: Camera): Promise<void>;
+  renderPipeline(renderPipeline: RenderPipelineLike): Promise<void>;
   setSize(width: number, height: number): void;
-  readPixels(): Promise<Uint8Array>;
-  toBuffer(format: OutputFormat): Promise<Uint8Array>;
+  readPixels(options?: ReadPixelsOptions): Promise<Uint8Array>;
+  toBuffer(format: OutputFormat, options?: ReadPixelsOptions): Promise<Uint8Array>;
   unsafeGetWebGpuRenderer(): WebGPURenderer;
   getDiagnostics(): HeadlessWebGPURendererDiagnostics;
   dispose(): Promise<void>;
@@ -66,6 +69,17 @@ export interface EncodeImageOptions {
   width: number;
   height: number;
   format: OutputFormat;
+}
+
+export type ReadbackColorSpace = "srgb" | "linear";
+export type ReadbackFormat = "rgba8unorm" | "rgba16float";
+
+export interface ReadPixelsOptions {
+  colorSpace?: ReadbackColorSpace;
+}
+
+export interface RenderPipelineLike {
+  render(): void;
 }
 
 export interface RendererBenchmarkOptions extends RendererRuntimeOptions {
