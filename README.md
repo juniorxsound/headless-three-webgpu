@@ -174,6 +174,14 @@ rgl inspect ./model.glb
 rgl bench --iterations 20 --format png
 ```
 
+Scene documents are persistent `.rgl.json` files using `schemaVersion: "rgl.scene/v1"`. They can define assets, objects, cameras, lights, views, and named sequences with track/keyframe animation. For stills, use `--view`, `--sequence`, and `--time` to choose the evaluated frame:
+
+```bash
+rgl render --json ./scene.rgl.json --sequence hero-shot --time 2.5 --output ./frame.png
+```
+
+If the scene requests multiple render passes with metadata such as `renderPasses: ["color", "depth"]`, `render --json` writes the color frame to `--output` and additional pass files next to it, for example `frame.depth.png`.
+
 ### Video
 
 `rgl video` renders an animated clip and requires `ffmpeg` on your `PATH` (or set `RGL_FFMPEG_PATH`). The container is inferred from the output extension (`.mp4`, `.mov`, `.webm`, `.gif`), and frames are streamed straight to ffmpeg as raw RGBA so memory stays flat for long clips.
@@ -191,6 +199,8 @@ Tune the encode with `--fps`, `--duration`, `--crf` (lower is higher quality), `
 ```bash
 rgl video --js ./scene.mjs --output ./scene.mp4 --fps 24 --duration 5
 ```
+
+For scene documents, `rgl video --json ./scene.rgl.json --output ./scene.mp4` renders every sequence in document order into one stitched file when `--sequence` is omitted. Pass `--sequence <id>` to render only one sequence. `--duration` overrides each selected sequence duration, and `--fps` overrides the output frame rate. Scene-document video currently streams color frames to ffmpeg; use `render --json` for depth or other still-pass outputs.
 
 Environment maps currently support local equirectangular `.hdr` and `.ktx2` files for GLTF/GLB renders. Use `--env-background` to show the map behind the model, `--env-intensity` to control IBL strength, and `--env-blur` to soften the visible background.
 
