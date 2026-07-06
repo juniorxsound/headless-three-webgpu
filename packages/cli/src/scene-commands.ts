@@ -29,7 +29,7 @@ const sceneVideoCommandOptionsSchema = z.object({
   dawnFlag: z.array(z.string().min(1)).default([]),
 });
 
-export interface SceneRenderExecutionPlan {
+interface SceneRenderExecutionPlan {
   outputPath: string;
   viewId?: string;
   sequenceId?: string;
