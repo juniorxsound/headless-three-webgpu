@@ -180,7 +180,7 @@ export const sceneLightSchema = z
       })
       .strict(),
   ])
-  .superRefine((value: z.infer<typeof sceneLightSchema>, ctx: z.RefinementCtx) => {
+  .superRefine((value, ctx) => {
     if (value.parentId && value.parentId === value.id) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -271,7 +271,7 @@ export const sceneTrackSchema = z
     metadata: metadataSchema.optional(),
   })
   .strict()
-  .superRefine((value: z.infer<typeof sceneTrackSchema>, ctx: z.RefinementCtx) => {
+  .superRefine((value, ctx) => {
     for (const [keyframeId, keyframe] of Object.entries(value.keyframes)) {
       if (keyframe.id !== keyframeId) {
         ctx.addIssue({
@@ -322,7 +322,7 @@ export const sceneDocumentSchema = z
     metadata: metadataSchema.optional(),
   })
   .strict()
-  .superRefine((value: z.infer<typeof sceneDocumentSchema>, ctx: z.RefinementCtx) => {
+  .superRefine((value, ctx) => {
     const nodeIds = new Map<string, "object" | "camera" | "light">();
     const parentIds = new Map<string, string>();
     const nodePaths = new Map<string, (string | number)[]>();

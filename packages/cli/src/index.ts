@@ -11,7 +11,6 @@ import {
 } from "@rendergl/headless-three-webgpu-scene";
 
 import { buildBenchOptions, buildRenderPlan, buildVideoPlan } from "./commands.js";
-import { resolveFormat } from "./commands.js";
 import { ffmpegInstallHint, isFfmpegAvailable } from "./encoder.js";
 import { renderSceneModule } from "./render-js.js";
 import { buildSceneRenderPlan, buildSceneVideoPlan } from "./scene-commands.js";
@@ -118,16 +117,15 @@ addSharedSceneOptions(program.command("render"))
       });
 
       await mkdir(dirname(plan.outputPath), { recursive: true });
-      const format = resolveFormat(undefined, plan.outputPath);
       const writtenPasses: Array<{ passId: string; outputPath: string }> = [];
 
       for (const [passId, buffer] of Object.entries(result.buffers)) {
-        const outputPath = resolveScenePassOutputPath(plan.outputPath, passId, format);
+        const outputPath = resolveScenePassOutputPath(plan.outputPath, passId, plan.format);
         const encoded = await encodeImageToBuffer({
           pixels: buffer,
           width: result.output.width,
           height: result.output.height,
-          format,
+          format: plan.format,
         });
         await writeFile(outputPath, encoded);
         writtenPasses.push({ passId, outputPath });

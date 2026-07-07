@@ -44,10 +44,22 @@ describe("scene command helpers", () => {
         time: 2.5,
       }),
     ).toEqual({
+      format: "png",
       outputPath: "/tmp/scene.rgl.png",
       viewId: "main",
       sequenceId: "beat",
       time: 2.5,
+    });
+  });
+
+  it("builds a scene render plan with an explicit image format", () => {
+    expect(
+      buildSceneRenderPlan("/tmp/scene.rgl.json", {
+        format: "webp",
+      }),
+    ).toMatchObject({
+      format: "webp",
+      outputPath: "/tmp/scene.rgl.webp",
     });
   });
 

@@ -30,6 +30,7 @@ import {
   SphereGeometry,
   SpotLight,
   Texture,
+  type BufferGeometry,
   type Material,
 } from "three";
 import { pass } from "three/tsl";
@@ -707,15 +708,20 @@ function disposeMaterial(material: Material): void {
 
 function disposeSceneGraph(root: Object3D): void {
   root.traverse((object) => {
-    const mesh = object as Mesh;
-    if (!mesh.isMesh) {
-      return;
-    }
+    const renderable = object as Object3D & {
+      geometry?: BufferGeometry;
+      material?: Material | Material[];
+    };
 
-    mesh.geometry.dispose();
-    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-    for (const material of materials) {
-      disposeMaterial(material);
+    renderable.geometry?.dispose();
+
+    if (renderable.material) {
+      const materials = Array.isArray(renderable.material)
+        ? renderable.material
+        : [renderable.material];
+      for (const material of materials) {
+        disposeMaterial(material);
+      }
     }
   });
 }

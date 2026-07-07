@@ -18,6 +18,7 @@ export type {
   HeadlessWebGPURendererDiagnostics,
   OutputFormat,
   ReadbackColorSpace,
+  ReadbackFormat,
   ReadPixelsOptions,
   RendererBenchmarkOptions,
   RendererBenchmarkResult,

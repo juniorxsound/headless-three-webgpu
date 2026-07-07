@@ -3,10 +3,13 @@ import { basename, dirname, extname, join } from "node:path";
 import { resolveSceneDuration, type SceneDocument } from "@rendergl/headless-three-webgpu-scene";
 import { z } from "zod";
 
-import { resolveVideoContainer, type VideoContainer } from "./commands.js";
+import { resolveFormat, resolveVideoContainer, type VideoContainer } from "./commands.js";
+
+const outputFormatSchema = z.enum(["png", "webp"]);
 
 const sceneRenderCommandOptionsSchema = z.object({
   output: z.string().min(1).optional(),
+  format: outputFormatSchema.optional(),
   view: z.string().min(1).optional(),
   sequence: z.string().min(1).optional(),
   time: z.coerce.number().finite().default(0),
@@ -30,6 +33,7 @@ const sceneVideoCommandOptionsSchema = z.object({
 });
 
 interface SceneRenderExecutionPlan {
+  format: "png" | "webp";
   outputPath: string;
   viewId?: string;
   sequenceId?: string;
@@ -96,8 +100,10 @@ export function buildSceneRenderPlan(
   options: unknown,
 ): SceneRenderExecutionPlan {
   const parsed = sceneRenderCommandOptionsSchema.parse(options);
+  const format = resolveFormat(parsed.format, parsed.output);
   return {
-    outputPath: resolveSceneOutputPath(scenePath, parsed.output, ".png"),
+    format,
+    outputPath: resolveSceneOutputPath(scenePath, parsed.output, `.${format}`),
     time: parsed.time,
     ...(parsed.view ? { viewId: parsed.view } : {}),
     ...(parsed.sequence ? { sequenceId: parsed.sequence } : {}),
