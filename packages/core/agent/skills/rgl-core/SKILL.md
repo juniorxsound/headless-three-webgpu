@@ -60,6 +60,7 @@ await renderer.dispose();
 - `width?: number`
 - `height?: number`
 - `runtime?: RendererRuntime`
+- `readbackFormat?: "rgba8unorm" | "rgba16float"` (defaults to `"rgba8unorm"`)
 - `alpha?: boolean`
 - `antialias?: boolean`
 - `clearColor?: string | number`
@@ -72,7 +73,8 @@ Notes:
 - Use a shared `RendererRuntime` when creating multiple renderers in one process.
 - Always call `dispose()` on renderers and runtimes you create.
 - Output formats are `png` and `webp`.
-- `readPixels()` returns RGBA bytes.
+- `readPixels()` returns RGBA bytes. The default readback target is 8-bit; choose
+  `"rgba16float"` only for precision/HDR workflows that need half-float readback.
 
 ## Runtime Notes
 

@@ -117,7 +117,7 @@ export function deflateRgba8UnormRows(
 ): Uint8Array {
   const rowBytes = width * 4;
   if (bytesPerRow === rowBytes) {
-    return source.slice(0, rowBytes * height);
+    return source.subarray(0, rowBytes * height);
   }
 
   const output = new Uint8Array(width * height * 4);
@@ -134,7 +134,11 @@ export function rgbaReadbackBytesPerRow(width: number, bytesPerTexel = 4): numbe
 }
 
 export function asUint8Bytes(view: ArrayBufferView): Uint8Array {
-  return new Uint8Array(view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength));
+  if (view instanceof Uint8Array) {
+    return view;
+  }
+
+  return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
 }
 
 export function asHdrPixels(source: ArrayBufferView): Float32Array | Uint16Array {
@@ -156,6 +160,68 @@ export function convertLinearRgba8ToSrgb(source: Uint8Array): Uint8Array {
   }
 
   return output;
+}
+
+function quantizeLinear8(value: number): number {
+  return Math.min(255, Math.max(0, Math.round(Math.max(0, Math.min(1, value)) * 255)));
+}
+
+function toLinearRgba8BufferFromFloat32(
+  source: Float32Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const floatsPerRow = rgbaReadbackBytesPerRow(width, 16) / source.BYTES_PER_ELEMENT;
+  const output = new Uint8Array(width * height * 4);
+
+  let destIndex = 0;
+  for (let y = 0; y < height; y += 1) {
+    const srcRowStart = y * floatsPerRow;
+    for (let x = 0; x < width; x += 1) {
+      const sourceIndex = srcRowStart + x * 4;
+      output[destIndex++] = quantizeLinear8(source[sourceIndex]!);
+      output[destIndex++] = quantizeLinear8(source[sourceIndex + 1]!);
+      output[destIndex++] = quantizeLinear8(source[sourceIndex + 2]!);
+      output[destIndex++] = quantizeLinear8(source[sourceIndex + 3]!);
+    }
+  }
+
+  return output;
+}
+
+function toLinearRgba8BufferFromHalfFloat(
+  source: Uint16Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const halfFloatsPerRow = rgbaReadbackBytesPerRow(width, 8) / source.BYTES_PER_ELEMENT;
+  const output = new Uint8Array(width * height * 4);
+
+  let destIndex = 0;
+  for (let y = 0; y < height; y += 1) {
+    const srcRowStart = y * halfFloatsPerRow;
+    for (let x = 0; x < width; x += 1) {
+      const sourceIndex = srcRowStart + x * 4;
+      output[destIndex++] = quantizeLinear8(HALF_FLOAT_TO_FLOAT[source[sourceIndex]!]!);
+      output[destIndex++] = quantizeLinear8(HALF_FLOAT_TO_FLOAT[source[sourceIndex + 1]!]!);
+      output[destIndex++] = quantizeLinear8(HALF_FLOAT_TO_FLOAT[source[sourceIndex + 2]!]!);
+      output[destIndex++] = quantizeLinear8(HALF_FLOAT_TO_FLOAT[source[sourceIndex + 3]!]!);
+    }
+  }
+
+  return output;
+}
+
+export function toLinearRgba8Buffer(
+  source: Float32Array | Uint16Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  if (source instanceof Uint16Array) {
+    return toLinearRgba8BufferFromHalfFloat(source, width, height);
+  }
+
+  return toLinearRgba8BufferFromFloat32(source, width, height);
 }
 
 function toSrgbRgba8BufferFromFloat32(

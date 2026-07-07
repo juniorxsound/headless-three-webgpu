@@ -44,6 +44,7 @@ const renderer = await createHeadlessWebGPURenderer({
   runtime,
   width: 1024,
   height: 1024,
+  readbackFormat: "rgba8unorm",
 });
 
 const scene = new Scene();
@@ -76,7 +77,9 @@ The main exports are:
 - `encodeImageToBuffer()` - encode raw RGBA output to `png` or `webp`
 - `runRendererBenchmark()` - quick benchmark helper for runtime checks
 
-The renderer can output `png` and `webp` buffers.
+The renderer can output `png` and `webp` buffers. Readback defaults to `rgba8unorm`
+for fast PNG/video-friendly output. Use `readbackFormat: "rgba16float"` only when
+you need higher precision linear/HDR readback.
 
 ## Agent Instructions
 
